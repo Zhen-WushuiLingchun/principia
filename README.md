@@ -1,5 +1,5 @@
 # The Principia 
-*名字也是AI起的，如有侵权请告诉我（&emsp;
+*这名字也是AI起的
 
 查了一下当时开发用的名字principia貌似就被人用过了，于是这里改成了The Principia（似乎还更有高级感了
 
