@@ -1,5 +1,7 @@
 # The Principia 
-*名字也是AI起的，如有侵权请告诉我（&emsp;查了一下当时用的principia.AI貌似就被人用过了，于是这里改成了The Principia
+*名字也是AI起的，如有侵权请告诉我（&emsp;
+
+查了一下当时开发用的名字principia貌似就被人用过了，于是这里改成了The Principia（似乎还更有高级感了
 
 借助Gemini进行初步设计，接着完全通过TRAE开发的一个AI手写识别并转成LaTeX/markdown格式的项目，并且在网页端可以实时通过AI解释相应的公式
 
