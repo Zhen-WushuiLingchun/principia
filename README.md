@@ -6,7 +6,7 @@
 具体细节见附带的别的markdown文件（这些其实也是AI写的，但是能看懂就行
 
 ![](https://github.com/Zhen-WushuiLingchun/principia/blob/main/images/%E5%9B%BE.png)
-这个是Nano Banana Pro生成的图标，我觉得除了元素稍微有点多，寓意什么都还挺好的。
+这个是Nano Banana Pro生成的图标，我觉得除了元素稍微有点多，寓意什么都还挺好的，就用到这里了
 
 这个作为仅有三四个小时（TRAE on Campus的Vibe Coding Workshop的时间要求），并且采用AI开发的一个小项目，有一些bug或者不完善的地方是在所难免的，请见谅（不过我觉得效果还不错了，这里的版本是又加了点修改的
 
