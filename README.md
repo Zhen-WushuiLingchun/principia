@@ -3,6 +3,8 @@
 
 借助Gemini进行初步设计，接着完全通过TRAE开发的一个AI手写识别并转成LaTeX/markdown格式的项目，并且在网页端可以实时通过AI解释相应的公式
 
+具体细节见附带的别的markdown文件（这些其实也是AI写的，但是能看懂就行
+
 ![](https://github.com/Zhen-WushuiLingchun/principia/blob/main/images/%E5%9B%BE.png)
 这个是Nano Banana Pro生成的图标，我觉得除了元素稍微有点多，寓意什么都还挺好的。
 
