@@ -6,7 +6,7 @@
 ![](https://github.com/Zhen-WushuiLingchun/principia/blob/main/images/%E5%9B%BE.png)
 这个是Nano Banana Pro生成的图标，我觉得除了元素稍微有点多，寓意什么都还挺好的。
 
-这个作为仅有三四个小时（TRAE on Campus的Vibe Coding Workshop的时间要求），并且采用AI开发的一个小项目，有一些bug或者不完善的地方是在所难免的，请见谅（不过我觉得效果还不错了
+这个作为仅有三四个小时（TRAE on Campus的Vibe Coding Workshop的时间要求），并且采用AI开发的一个小项目，有一些bug或者不完善的地方是在所难免的，请见谅（不过我觉得效果还不错了，这里的版本是又加了点修改的
 
 日后可能开发成插件或者app之类的东西，不过我作为物理学（其实现在还在大类里面，来年大抵会去物理）的本科生，得看有没有时间了（ 
 
