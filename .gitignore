@@ -15,7 +15,7 @@ principia/dist-ssr/
 principia/*.local
 
 # IDEs
-.vscode/
+.trae/
 .idea/
 *.swp
 *.swo
