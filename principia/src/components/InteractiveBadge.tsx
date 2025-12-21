@@ -36,16 +36,29 @@ export function InteractiveBadge({ content, title = "Physics Model Analysis", fu
 
   useEffect(() => {
     const fetchAnalysis = async () => {
+      // Try to load settings from localStorage if not provided or empty
+      let currentSettings = settings;
+      if (!currentSettings || (!currentSettings.reasoning.apiKey && !currentSettings.vision.apiKey)) {
+          const savedSettings = localStorage.getItem('the_principia_settings');
+          if (savedSettings) {
+              try {
+                  currentSettings = JSON.parse(savedSettings);
+              } catch (e) {
+                  console.error("Failed to load local settings", e);
+              }
+          }
+      }
+
       setIsLoading(true);
       try {
           const body: any = { context: content, fullContext: fullContext };
           // Attach reasoning config if available
-          if (settings?.reasoning?.apiKey) {
-              body.reasoningConfig = settings.reasoning;
+          if (currentSettings?.reasoning?.apiKey) {
+              body.reasoningConfig = currentSettings.reasoning;
           }
           // Attach vision config (used for visualization) if available
-          if (settings?.vision?.apiKey) {
-              body.visionConfig = settings.vision;
+          if (currentSettings?.vision?.apiKey) {
+              body.visionConfig = currentSettings.vision;
           }
 
           const response = await fetch('/api/analyze', {
