@@ -50,7 +50,7 @@ function App() {
 
   // Load settings on mount
   useEffect(() => {
-      const savedSettings = localStorage.getItem('principia_settings');
+      const savedSettings = localStorage.getItem('the_principia_settings');
       if (savedSettings) {
           try {
               setSettings(JSON.parse(savedSettings));
