@@ -1,78 +1,26 @@
-# The Principia - AI-Powered Physics & Math Workspace
+# The Principia 
+*这名字也是AI起的
 
-The Principia is a next-generation research and education workspace that combines the power of LaTeX/Markdown editing, handwriting recognition, and AI-driven physics simulation. It is designed to bridge the gap between static notes and dynamic understanding.
+查了一下当时开发用的名字principia貌似就被人用过了，于是这里改成了The Principia（似乎还更有高级感了
+借助Gemini进行初步设计，接着完全通过TRAE开发的一个AI手写识别并转成LaTeX/markdown格式的项目，并且在网页端可以实时通过AI解释相应的公式
+具体细节见附带的别的markdown文件（其实也是AI写的
 
-## Key Features
+![](https://github.com/Zhen-WushuiLingchun/principia/blob/main/images/%E5%9B%BE.png)
 
-### 1. Dual-Mode Editor (LaTeX & Markdown)
-- **Seamless Switching**: Toggle between LaTeX and Markdown modes instantly.
-- **AI Conversion**: Built-in AI automatically converts your content between formats while preserving document structure, equations, and **text colors**.
-- **Live Preview**: Real-time rendering of LaTeX math and Markdown formatting.
+这个是Nano Banana Pro生成的图标，感觉还行，就用到这里了
 
-### 2. Intelligent Handwriting Recognition
-- **Canvas Input**: Draw equations, diagrams, or notes directly on the digital canvas.
-- **AI OCR**: Advanced vision models transcribe handwriting into editable LaTeX code.
-- **Color Detection**: Automatically detects stroke colors (e.g., red for emphasis) and preserves them in the transcribed text using `\textcolor` or HTML tags.
+这个作为仅有三四个小时（TRAE on Campus的Vibe Coding Workshop的时间要求），并且采用100% AI开发的一个小项目，有一些bug或者不完善的地方是在所难免的，请见谅（
 
-### 3. AI Reasoning & Visualization
-- **Deep Understanding**: Select any equation or concept to get an instant AI explanation.
-- **Interactive Simulations**: The AI generates dynamic, interactive HTML5/JS physics simulations based on your notes (e.g., projectile motion, wave interference) that you can run directly in the workspace.
+日后可能开发成插件或者app之类的东西，得看有没有空闲时间了，至少得等到放假（ 
 
-### 4. Comprehensive Export
-- **Project Bundle**: Export your work as a ZIP file containing:
-  - **Main Document**: Your notes in `.tex` or `.md` format.
-  - **Handwriting**: A compiled PDF of your canvas pages.
-  - **Visualizations**: Interactive HTML files of any generated simulations.
-  - **Explanations**: AI-generated explanations in a separate section.
+这个项目的出发点是解决在听课或者别的时候，需要撰写latex/md文档时，输入不方便的问题，同时提供了文本直接输入和手写输入，比如复杂公式可以手写，常见的直接打字就行，会方便很多，这个直接采用多模态AI识别并同时纠正，性能应该说是远胜于一般的OCR识别了（写错了都能改正），预览中加了个AI解释的功能，有些时候不明白会挺有用的（经典的如课上捡了根笔，不知道讲什么了），解释功能不仅限于那一个公式，还包含了一部分上下文，这样也可以直接在公式前面要求AI仔细推导，这样会输出详尽解释，同时因为有了上下文，回答语言就不用特意调了，用什么语言就输出什么
 
-### 5. Customizable AI Backend
-- **Model Agnostic**: Configure your own API endpoints and keys (compatible with OpenAI/Gemini formats) for both Reasoning and Vision tasks.
+为了api便宜点，解释模型可以选择别的接口，同时为了物尽其用这个多模态，还让多模态那个AI，吃进去解释，输出可视化的程序，也算是挺有用的
 
-## Quick Start
+而且加了个TeX和md文档的切换，写点东西，然后点击切换，让AI模型（这个用的做解释的模型，没用多模态，反正处理文本，还便宜点）转化代码，可能比直接替换要准确点，也能适应不同的排版语言本身的特性
 
-### Prerequisites
-- Node.js (v18+)
-- Python (v3.10+)
-- An API Key for an LLM provider (e.g., OpenAI, Gemini, or a local LLM serving endpoint).
+不过虽然有手写识别，我并没有加上传图片识别，因为我觉得都已经写到纸上了，与其抄一遍，不如拍照直接发给现成的AI转化格式了，不过之后复习，或者需要AI解释的时候，直接在文本模式粘贴TeX/md进来，也是挺方便的
 
-### Installation
+api_key存储在浏览器本地，不过调用的时候会发到服务端，感觉不太安全，自己用的时候可以把代码修改一下，或者自己本地跑自己用就行了（感觉可以反过来想，调用的时候把调用提示词和具体请求方式发给用户网页，从用户直接向api服务商发请求，这样大抵不会泄露api_key了
 
-1.  **Clone the repository**:
-    ```bash
-    git clone https://github.com/yourusername/the-principia.git
-    cd the-principia
-    ```
-
-2.  **Install Frontend Dependencies**:
-    ```bash
-    cd principia
-    npm install
-    ```
-
-3.  **Install Backend Dependencies**:
-    ```bash
-    cd ..
-    pip install -r requirements.txt
-    ```
-
-### Running the App
-
-1.  **Start the Backend**:
-    ```bash
-    # From project root
-    python app.py
-    ```
-
-2.  **Start the Frontend (Dev Mode)**:
-    ```bash
-    # From principia/ directory
-    npm run dev
-    ```
-
-3.  **Access**: Open `http://localhost:5173` in your browser.
-
-## Documentation
-
-- [User Manual](USER_MANUAL.md) - Detailed usage instructions.
-- [Developer Guide](DEVELOPER_GUIDE.md) - Architecture and contribution.
-- [Build Guide](BUILD_GUIDE.md) - Production build and deployment.
+希望你用得开心，真拿这个东西改造出了什么别的好玩的，记得给我也看看（
