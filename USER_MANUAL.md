@@ -52,6 +52,6 @@ Click the **Export** button in the header to open the export dialog.
 ## 5. Settings
 
 Click the **Gear Icon** in the header to configure AI providers.
--   **Reasoning Model**: Used for Explanations, Visualizations, and Format Conversion.
--   **Vision Model**: Used for Handwriting OCR.
+-   **Reasoning Model**: Used for Explanations, and Format Conversion.
+-   **Vision Model**: Used for Handwriting OCR, Visualizations.
 -   **Configuration**: Enter your `Base URL` and `API Key`. Compatible with OpenAI, Gemini, and other OpenAI-compatible endpoints.
