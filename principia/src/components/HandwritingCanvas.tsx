@@ -88,7 +88,9 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
   const [isEraser, setIsEraser] = useState(false);
   const currentRadius = isEraser ? eraserRadius : penRadius;
   const [isPanMode, setIsPanMode] = useState(false);
+  const [gesturePanActive, setGesturePanActive] = useState(false);
   const panLastYRef = useRef<number | null>(null);
+  const drawingPointerIdRef = useRef<number | null>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: PAGE_HEIGHT }); // Initial A4-ish height
   
   // Current page state
@@ -209,9 +211,11 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
 
   // Pointer Events for Drawing
   const handlePointerDown = (e: React.PointerEvent) => {
-    if (isPanMode) return;
+    if (isPanMode || gesturePanActive) return;
+    if (e.pointerType === 'touch' && !e.isPrimary) return;
     // Capture pointer
     (e.target as Element).setPointerCapture(e.pointerId);
+    drawingPointerIdRef.current = e.pointerId;
     
     setIsDrawing(true);
     const rect = canvasRef.current!.getBoundingClientRect();
@@ -228,6 +232,8 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!isDrawing || !currentLine) return;
+    if (isPanMode || gesturePanActive) return;
+    if (drawingPointerIdRef.current !== e.pointerId) return;
     
     const rect = canvasRef.current!.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -256,6 +262,7 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
 
   const handlePointerUp = (e: React.PointerEvent) => {
     if (!isDrawing) return;
+    if (drawingPointerIdRef.current !== e.pointerId) return;
     setIsDrawing(false);
     (e.target as Element).releasePointerCapture(e.pointerId);
     
@@ -265,6 +272,7 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
         setCurrentLine(null);
         debouncedSaveRef.current?.(JSON.stringify({ lines: newLines, width: dimensions.width, height: dimensions.height }));
     }
+    drawingPointerIdRef.current = null;
   };
 
 
@@ -425,7 +433,7 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
     return () => resizeObserver.disconnect();
   }, []);
 
-  // Multi-touch Logic for Auto-Pan
+  // Multi-touch Logic for Gesture Pan
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
@@ -438,17 +446,19 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
 
     const handleTouchStart = (e: TouchEvent) => {
       if (e.touches.length >= 2) {
-        setIsPanMode(true);
+        setGesturePanActive(true);
         panLastYRef.current = getAvgY(e.touches);
+        if (isDrawing) {
+          setIsDrawing(false);
+          setCurrentLine(null);
+          drawingPointerIdRef.current = null;
+        }
         e.preventDefault();
-      } else if (e.touches.length === 1 && !isEraser && activeMenu === 'none') {
-        setIsPanMode(false);
-        panLastYRef.current = null;
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (!isPanMode || e.touches.length < 2) return;
+      if (!gesturePanActive || e.touches.length < 2) return;
       const y = getAvgY(e.touches);
       if (panLastYRef.current != null) {
         const dy = y - panLastYRef.current;
@@ -460,7 +470,7 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
 
     const handleTouchEnd = (e: TouchEvent) => {
       if (e.touches.length < 2) {
-        setIsPanMode(false);
+        setGesturePanActive(false);
         panLastYRef.current = null;
       }
     };
@@ -475,7 +485,7 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
       container.removeEventListener('touchend', handleTouchEnd);
       container.removeEventListener('touchcancel', handleTouchEnd);
     };
-  }, [isEraser, activeMenu, isPanMode]);
+  }, [isEraser, activeMenu, isPanMode, isDrawing]);
 
   // Close menus when clicking outside
   useEffect(() => {
@@ -826,8 +836,8 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
 
        <div 
          ref={scrollContainerRef}
-         className={`flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar relative touch-pan-y ${isPanMode ? 'cursor-grab active:cursor-grabbing' : 'cursor-crosshair'}`}
-         style={{ touchAction: isPanMode ? 'pan-y' : 'none' }}
+        className={`flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar relative touch-pan-y ${(isPanMode || gesturePanActive) ? 'cursor-grab active:cursor-grabbing' : 'cursor-crosshair'}`}
+        style={{ touchAction: (isPanMode || gesturePanActive) ? 'pan-y' : 'none' }}
        >
           <div style={{ height: dimensions.height, width: dimensions.width }} className="relative">
               {/* Page Indicators */}
@@ -857,7 +867,7 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
                 style={{ backgroundColor: '#0a0a0a' }}
               />
               
-              <div className={isPanMode ? 'pointer-events-none' : ''}>
+              <div className={(isPanMode || gesturePanActive) ? 'pointer-events-none' : ''}>
                 <canvas
                     ref={canvasRef}
                     className="absolute top-0 left-0"
