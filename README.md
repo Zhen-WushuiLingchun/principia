@@ -1,5 +1,5 @@
 # The Principia 
-*这名字也是AI起的
+**这名字也是AI起的**
 
 查了一下当时开发用的名字principia貌似就被人用过了，于是这里改成了The Principia（似乎还更有高级感了
 借助Gemini进行初步设计，接着完全通过TRAE开发的一个AI手写识别并转成LaTeX/markdown格式的项目，并且在网页端可以实时通过AI解释相应的公式
@@ -30,18 +30,22 @@
 
 希望你用得开心，真拿这个东西改造出了什么别的好玩的，记得给我也看看（
 
-##实际使用测试
+*实际使用测试*
 
-*写的不太好的字的识别
+<big>**写的不太好的字的识别**<\big>
+
 ![](https://github.com/Zhen-WushuiLingchun/principia/blob/main/images/mmexport1766463954386.jpg) 
 
-*比较复杂的可视化（伪转动 boost）
+<big>**比较复杂的可视化（伪转动 boost**<\big>
+
 ![](https://github.com/Zhen-WushuiLingchun/principia/blob/main/images/mmexport1766463907871.jpg)
 
-*过于复杂的公式/理论的可视化可能不太好，或者根本就没什么可视化的，这就不能强求AI了
+<big>**过于复杂的公式/理论的可视化可能不太好，或者根本就没什么可视化的，这就不能强求AI了**<\big>
+
 ![](https://github.com/Zhen-WushuiLingchun/principia/blob/main/images/mmexport1766463962125.jpg)
 
-*使用AI的好处，连函数图像也可以识别，现场就可以生成能用的tex代码（只不过KaTeX不支持实时渲染，得下载之后用XeLaTeX等编译）
+<big>**使用AI的好处，连函数图像也可以识别，现场就可以生成能用的tex代码（只不过KaTeX不支持实时渲染，得下载之后用XeLaTeX等编译**<\big>
+
 ![](https://github.com/Zhen-WushuiLingchun/principia/blob/main/images/IMG_20251223_122625.jpg)
 ![](https://github.com/Zhen-WushuiLingchun/principia/blob/main/images/IMG_20251223_122710.jpg)
 
