@@ -30,21 +30,21 @@
 
 希望你用得开心，真拿这个东西改造出了什么别的好玩的，记得给我也看看（
 
-*实际使用测试*
+***实际使用测试***
 
-<big>**写的不太好的字的识别**<\big>
+<big>**写的不太好的字的识别**
 
 ![](https://github.com/Zhen-WushuiLingchun/principia/blob/main/images/mmexport1766463954386.jpg) 
 
-<big>**比较复杂的可视化（伪转动 boost**<\big>
+<big>**比较复杂的可视化（伪转动 boost**
 
 ![](https://github.com/Zhen-WushuiLingchun/principia/blob/main/images/mmexport1766463907871.jpg)
 
-<big>**过于复杂的公式/理论的可视化可能不太好，或者根本就没什么可视化的，这就不能强求AI了**<\big>
+<big>**过于复杂的公式/理论的可视化可能不太好，或者根本就没什么可视化的，这就不能强求AI了**
 
 ![](https://github.com/Zhen-WushuiLingchun/principia/blob/main/images/mmexport1766463962125.jpg)
 
-<big>**使用AI的好处，连函数图像也可以识别，现场就可以生成能用的tex代码（只不过KaTeX不支持实时渲染，得下载之后用XeLaTeX等编译**<\big>
+<big>**使用AI的好处，连函数图像也可以识别，现场就可以生成能用的tex代码（只不过KaTeX不支持实时渲染，得下载之后用XeLaTeX等编译**
 
 ![](https://github.com/Zhen-WushuiLingchun/principia/blob/main/images/IMG_20251223_122625.jpg)
 ![](https://github.com/Zhen-WushuiLingchun/principia/blob/main/images/IMG_20251223_122710.jpg)
