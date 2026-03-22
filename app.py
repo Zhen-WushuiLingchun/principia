@@ -325,10 +325,10 @@ RULES:
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve(path):
-    if path != "" and os.path.exists(app.static_folder + '/' + path):
-        return send_from_directory(app.static_folder, path)
+    if path != "" and os.path.exists(os.path.join(app.static_folder, 'dist', path)):
+        return send_from_directory(os.path.join(app.static_folder, 'dist'), path)
     else:
-        return send_from_directory(app.static_folder, 'index.html')
+        return send_from_directory(os.path.join(app.static_folder, 'dist'), 'index.html')
 
 if __name__ == "__main__":
     print(f"--------------------------------------------------")
