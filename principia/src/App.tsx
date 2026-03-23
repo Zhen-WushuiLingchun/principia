@@ -6,6 +6,8 @@ import type { BackgroundType } from './components/HandwritingCanvas'
 import type { HandwritingCanvasRef } from './components/HandwritingCanvas'
 import { Renderer } from './components/Renderer'
 import { Download, Settings, PenTool, Type, X, ArrowRightLeft, Sparkles, FileImage, Archive, Clock, BookOpen, Sun, Moon, Trash2 } from 'lucide-react';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 import { saveAs } from 'file-saver'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Portal } from './components/Portal'
@@ -184,15 +186,23 @@ function App() {
         { name: lang === 'en' ? 'Sum of Squares' : '平方和', latex: "a^2 + b^2 = (a + b)^2 - 2ab" },
         { name: lang === 'en' ? 'Difference of Squares' : '平方差', latex: "a^2 - b^2 = (a - b)(a + b)" },
         { name: lang === 'en' ? 'Binomial Theorem' : '二项式定理', latex: "(a + b)^n = \\sum_{k=0}^{n} \\binom{n}{k} a^{n-k} b^k" },
+        { name: lang === 'en' ? 'Sum of Cubes' : '立方和', latex: "a^3 + b^3 = (a + b)(a^2 - ab + b^2)" },
+        { name: lang === 'en' ? 'Difference of Cubes' : '立方差', latex: "a^3 - b^3 = (a - b)(a^2 + ab + b^2)" },
+        { name: lang === 'en' ? 'Arithmetic Series' : '等差数列求和', latex: "S_n = \\frac{n}{2}(a_1 + a_n) = \\frac{n}{2}[2a_1 + (n-1)d]" },
+        { name: lang === 'en' ? 'Geometric Series' : '等比数列求和', latex: "S_n = a_1 \\frac{1 - r^n}{1 - r}, r \\neq 1" },
       ]
     },
     calculus: {
       name: lang === 'en' ? 'Calculus' : '微积分',
       formulas: [
-        { name: lang === 'en' ? 'Derivative of x^n' : 'x^n的导数', latex: "\\frac{d}{dx} x^n = nx^{n-1}" },
-        { name: lang === 'en' ? 'Integral of x^n' : 'x^n的积分', latex: "\\int x^n dx = \\frac{x^{n+1}}{n+1} + C" },
+        { name: lang === 'en' ? 'Derivative of x^n' : 'xⁿ的导数', latex: "\\frac{d}{dx} x^n = nx^{n-1}" },
+        { name: lang === 'en' ? 'Integral of x^n' : 'xⁿ的积分', latex: "\\int x^n dx = \\frac{x^{n+1}}{n+1} + C" },
         { name: lang === 'en' ? 'Chain Rule' : '链式法则', latex: "\\frac{d}{dx} f(g(x)) = f'(g(x)) \\cdot g'(x)" },
         { name: lang === 'en' ? 'Product Rule' : '乘积法则', latex: "\\frac{d}{dx} [f(x)g(x)] = f'(x)g(x) + f(x)g'(x)" },
+        { name: lang === 'en' ? 'Quotient Rule' : '商数法则', latex: "\\frac{d}{dx} \\frac{f(x)}{g(x)} = \\frac{f'(x)g(x) - f(x)g'(x)}{[g(x)]^2}" },
+        { name: lang === 'en' ? 'Basic Limit' : '基本极限', latex: "\\lim_{x \\to 0} \\frac{\\sin x}{x} = 1" },
+        { name: lang === 'en' ? 'Derivative of e^x' : '指数函数的导数', latex: "\\frac{d}{dx} e^x = e^x" },
+        { name: lang === 'en' ? 'Derivative of ln x' : '对数函数的导数', latex: "\\frac{d}{dx} \\ln x = \\frac{1}{x}" },
       ]
     },
     trigonometry: {
@@ -202,6 +212,10 @@ function App() {
         { name: lang === 'en' ? 'Sine Addition' : '正弦加法公式', latex: "\\sin(A + B) = \\sin A \\cos B + \\cos A \\sin B" },
         { name: lang === 'en' ? 'Cosine Addition' : '余弦加法公式', latex: "\\cos(A + B) = \\cos A \\cos B - \\sin A \\sin B" },
         { name: lang === 'en' ? 'Tangent Formula' : '正切公式', latex: "\\tan \\theta = \\frac{\\sin \\theta}{\\cos \\theta}" },
+        { name: lang === 'en' ? 'Double Angle Formula (Sine)' : '正弦二倍角公式', latex: "\\sin 2\\theta = 2\\sin \\theta \\cos \\theta" },
+        { name: lang === 'en' ? 'Double Angle Formula (Cosine)' : '余弦二倍角公式', latex: "\\cos 2\\theta = \\cos^2 \\theta - \\sin^2 \\theta = 2\\cos^2 \\theta - 1 = 1 - 2\\sin^2 \\theta" },
+        { name: lang === 'en' ? 'Tangent Addition' : '正切加法公式', latex: "\\tan(A + B) = \\frac{\\tan A + \\tan B}{1 - \\tan A \\tan B}" },
+        { name: lang === 'en' ? 'Cotangent Formula' : '余切公式', latex: "\\cot \\theta = \\frac{\\cos \\theta}{\\sin \\theta} = \\frac{1}{\\tan \\theta}" },
       ]
     },
     physics: {
@@ -211,6 +225,12 @@ function App() {
         { name: lang === 'en' ? 'Kinetic Energy' : '动能', latex: "E_k = \\frac{1}{2}mv^2" },
         { name: lang === 'en' ? 'Potential Energy' : '势能', latex: "E_p = mgh" },
         { name: lang === 'en' ? 'Ohm\'s Law' : '欧姆定律', latex: "V = IR" },
+        { name: lang === 'en' ? 'Gravitational Force' : '万有引力定律', latex: "F = G \\frac{m_1m_2}{r^2}" },
+        { name: lang === 'en' ? 'Work' : '功', latex: "W = Fd \\cos \\theta" },
+        { name: lang === 'en' ? 'Power' : '功率', latex: "P = \\frac{W}{t} = Fv" },
+        { name: lang === 'en' ? 'Momentum' : '动量', latex: "p = mv" },
+        { name: lang === 'en' ? 'Impulse' : '冲量', latex: "J = F\\Delta t = \\Delta p" },
+        { name: lang === 'en' ? 'Centripetal Force' : '向心力', latex: "F_c = \\frac{mv^2}{r}" },
       ]
     }
   };
@@ -1316,7 +1336,7 @@ ${explanations.join("\n\\hrule\n")}
                                     {lang === 'en' ? 'No history yet' : '暂无历史记录'}
                                 </div>
                             ) : (
-                                <div className="space-y-3">
+                                <div className="space-y-3 pb-4">
                                     {history
                                         .filter(item => item.title.toLowerCase().includes(historySearch.toLowerCase()))
                                         .map((item) => (
@@ -1398,7 +1418,7 @@ ${explanations.join("\n\\hrule\n")}
                         <div className="flex gap-4">
                             {/* Category Sidebar */}
                             <div className="w-48 flex-shrink-0">
-                                <div className="space-y-1">
+                                <div className="space-y-1 max-h-[60vh] overflow-y-auto custom-scrollbar">
                                     {Object.entries(mathFormulas).map(([key, category]) => (
                                         <button
                                             key={key}
@@ -1412,8 +1432,8 @@ ${explanations.join("\n\\hrule\n")}
                             </div>
                             
                             {/* Formula List */}
-                            <div className="flex-1 overflow-y-auto custom-scrollbar">
-                                <div className="space-y-4">
+                            <div className="flex-1 overflow-y-auto custom-scrollbar max-h-[60vh]">
+                                <div className="space-y-4 pb-4">
                                     {mathFormulas[selectedFormulaCategory as keyof typeof mathFormulas]?.formulas.map((formula, index) => (
                                         <div 
                                             key={index}
@@ -1432,9 +1452,7 @@ ${explanations.join("\n\\hrule\n")}
                                                 </button>
                                             </div>
                                             <div className="text-center py-3">
-                                                <div className="text-lg text-foreground">
-                                                    {formula.latex}
-                                                </div>
+                                                <div className="text-lg text-foreground" dangerouslySetInnerHTML={{ __html: katex.renderToString(formula.latex, { displayMode: true, throwOnError: false, trust: true }) }} />
                                             </div>
                                         </div>
                                     ))}
