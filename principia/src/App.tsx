@@ -987,6 +987,7 @@ ${explanations.join("\n\\hrule\n")}
                             }}
                             initialPage={currentPage}
                             onPageChange={setCurrentPage}
+                            isDarkMode={isDarkMode}
                         />
                     </div>
                     <div className={`h-full w-full absolute inset-0 bg-background ${mobileViewMode === 'type' ? 'z-10' : 'z-0 invisible'}`}>
@@ -1055,6 +1056,7 @@ ${explanations.join("\n\\hrule\n")}
                         }}
                         initialPage={currentPage}
                         onPageChange={setCurrentPage}
+                        isDarkMode={isDarkMode}
                     />
                     </div>
                 </Panel>
@@ -1107,6 +1109,7 @@ ${explanations.join("\n\\hrule\n")}
                         }}
                         initialPage={currentPage}
                         onPageChange={setCurrentPage}
+                        isDarkMode={isDarkMode}
                     />
                     </div>
                 </Panel>
