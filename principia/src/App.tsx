@@ -43,7 +43,7 @@ function App() {
   const [inputMode, setInputMode] = useState<'text' | 'handwriting'>('text');
   const [isRecognizing, setIsRecognizing] = useState(false);
   const [ocrProgress, setOcrProgress] = useState<number>(0);
-  const [ocrTaskId, setOcrTaskId] = useState<string | null>(null);
+
   const [handwritingData, setHandwritingData] = useState<string>("");
   const [isLogoModalOpen, setIsLogoModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -232,7 +232,6 @@ function App() {
   const handleRecognize = async (imageData: string, pageIndex?: number) => {
     setIsRecognizing(true);
     setOcrProgress(0);
-    setOcrTaskId(null);
     try {
         // Handle legacy single-image recognition (or full canvas fallback)
         const body: OCRRequestBody = { image: imageData };
@@ -251,7 +250,6 @@ function App() {
         const data = await response.json();
         
         if (data.task_id) {
-            setOcrTaskId(data.task_id);
             
             // Start polling for progress
             const pollingInterval = setInterval(async () => {
@@ -320,14 +318,12 @@ function App() {
     } finally {
         setIsRecognizing(false);
         setOcrProgress(0);
-        setOcrTaskId(null);
     }
   };
 
   const handleSmartRecognize = async (changedPages: { pageIndex: number; imageData: string }[]) => {
       setIsRecognizing(true);
       setOcrProgress(0);
-      setOcrTaskId(null);
       try {
           let currentContent = content; // Work on a local copy to chain updates
           const totalPages = changedPages.length;
@@ -417,7 +413,6 @@ function App() {
       } finally {
           setIsRecognizing(false);
           setOcrProgress(0);
-          setOcrTaskId(null);
       }
   };
 
@@ -1087,6 +1082,7 @@ ${explanations.join("\n\\hrule\n")}
                         <button 
                             onClick={() => setIsExportModalOpen(false)}
                             className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors"
+                            title={lang === 'en' ? 'Close' : '关闭'}
                         >
                             <X size={20} />
                         </button>
@@ -1195,6 +1191,7 @@ ${explanations.join("\n\\hrule\n")}
                         <button 
                             onClick={() => setIsLogoModalOpen(false)}
                             className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors"
+                            title={lang === 'en' ? 'Close' : '关闭'}
                         >
                             <X size={20} />
                         </button>
