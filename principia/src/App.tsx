@@ -1047,7 +1047,7 @@ ${explanations.join("\n\\hrule\n")}
                         />
                     </div>
                     <div className={`h-full w-full absolute inset-0 bg-background ${mobileViewMode === 'type' ? 'z-10' : 'z-0 invisible'}`}>
-                        <Editor value={content} onChange={setContent} />
+                        <Editor value={content} onChange={setContent} lang={lang} />
                     </div>
                     <div className={`h-full w-full absolute inset-0 bg-background ${inputMode === 'image' ? 'z-10' : 'z-0 invisible'}`}>
                         <div className="h-full w-full p-6">
@@ -1260,7 +1260,7 @@ ${explanations.join("\n\\hrule\n")}
                 <>
                 <Panel defaultSize={50} minSize={30} className="h-full relative">
                     <div className={`h-full w-full ${inputMode === 'text' ? 'block' : 'hidden'}`}>
-                    <Editor value={content} onChange={setContent} />
+                    <Editor value={content} onChange={setContent} lang={lang} />
                     </div>
                     <div className={`h-full w-full ${inputMode === 'handwriting' ? 'block' : 'hidden'}`}>
                     <HandwritingCanvas 
@@ -1473,7 +1473,7 @@ ${explanations.join("\n\\hrule\n")}
                 
                 <Panel defaultSize={50} minSize={30} className="h-full relative">
                     <div className={`h-full w-full ${inputMode === 'text' ? 'block' : 'hidden'}`}>
-                    <Editor value={content} onChange={setContent} />
+                    <Editor value={content} onChange={setContent} lang={lang} />
                     </div>
                     <div className={`h-full w-full ${inputMode === 'handwriting' ? 'block' : 'hidden'}`}>
                     <HandwritingCanvas 
