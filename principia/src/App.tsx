@@ -131,6 +131,7 @@ function App() {
     export: lang === 'en' ? 'Export' : '导出',
     write: lang === 'en' ? 'Write' : '书写',
     type: lang === 'en' ? 'Type' : '输入',
+    image: lang === 'en' ? 'Image' : '图像',
     explain: lang === 'en' ? 'Explain' : '解释',
     switchingFormat: lang === 'en' ? `Switching to ${downloadFormat.toUpperCase()} format will use AI to restructure your document. \n\nThis process will rewrite formatting (headers, lists, etc.) to match ${downloadFormat === 'tex' ? 'LaTeX' : 'Markdown'} standards.\n\nDo you want to proceed?` : `切换到 ${downloadFormat.toUpperCase()} 格式将使用 AI 重构您的文档。\n\n此过程将重写格式（标题、列表等）以匹配 ${downloadFormat === 'tex' ? 'LaTeX' : 'Markdown'} 标准。\n\n是否继续？`
   };
@@ -1224,21 +1225,21 @@ ${explanations.join("\n\\hrule\n")}
                         className={`flex flex-col items-center justify-center gap-1 p-2 rounded-lg w-full transition-colors ${mobileViewMode === 'write' && inputMode !== 'image' ? 'text-blue-400' : 'text-muted-foreground hover:text-foreground'}`}
                     >
                         <PenTool size={20} />
-                        <span className="text-[10px] font-medium">Write</span>
+                        <span className="text-[10px] font-medium">{t.write}</span>
                     </button>
                     <button 
                         onClick={() => { setMobileViewMode('type'); setInputMode('text'); }}
                         className={`flex flex-col items-center justify-center gap-1 p-2 rounded-lg w-full transition-colors ${mobileViewMode === 'type' && inputMode !== 'image' ? 'text-blue-400' : 'text-muted-foreground hover:text-foreground'}`}
                     >
                         <Type size={20} />
-                        <span className="text-[10px] font-medium">Type</span>
+                        <span className="text-[10px] font-medium">{t.type}</span>
                     </button>
                     <button 
                         onClick={() => setInputMode('image')}
                         className={`flex flex-col items-center justify-center gap-1 p-2 rounded-lg w-full transition-colors ${inputMode === 'image' ? 'text-blue-400' : 'text-muted-foreground hover:text-foreground'}`}
                     >
                         <Image size={20} />
-                        <span className="text-[10px] font-medium">Image</span>
+                        <span className="text-[10px] font-medium">{t.image}</span>
                     </button>
                     <button 
                         onClick={() => setMobileViewMode('preview')}
@@ -1248,7 +1249,7 @@ ${explanations.join("\n\\hrule\n")}
                             <Sparkles size={20} />
                             <div className="absolute -top-1 -right-1 w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
                         </div>
-                        <span className="text-[10px] font-medium">Explain</span>
+                        <span className="text-[10px] font-medium">{t.explain}</span>
                     </button>
                 </div>
             </div>
