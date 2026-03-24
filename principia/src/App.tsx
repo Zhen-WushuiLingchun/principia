@@ -1188,18 +1188,18 @@ ${explanations.join("\n\\hrule\n")}
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0.9, opacity: 0 }}
-                        className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl shadow-2xl max-w-md w-full relative"
+                        className="bg-background border border-border p-6 rounded-2xl shadow-2xl max-w-md w-full relative"
                         onClick={e => e.stopPropagation()}
                     >
                         <button 
                             onClick={() => setIsExportModalOpen(false)}
-                            className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors"
+                            className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
                         >
                             <X size={20} />
                         </button>
                         
                         <div className="flex flex-col gap-6">
-                            <div className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+                            <div className="text-xl font-bold text-foreground tracking-tight flex items-center gap-2">
                                 <Download size={20} className="text-blue-400" />
                                 {t.exportOptions}
                             </div>
@@ -1207,17 +1207,17 @@ ${explanations.join("\n\\hrule\n")}
                             <div className="space-y-4">
                                 {/* Format Selection */}
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-zinc-400">{t.documentFormat}</label>
+                                    <label className="text-sm font-medium text-muted-foreground">{t.documentFormat}</label>
                                     <div className="flex gap-2">
                                         <button 
                                             onClick={() => setDownloadFormat('tex')}
-                                            className={`flex-1 py-2 px-4 rounded-lg border text-sm font-medium transition-all ${downloadFormat === 'tex' ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:bg-zinc-800/80'}`}
+                                            className={`flex-1 py-2 px-4 rounded-lg border text-sm font-medium transition-all ${downloadFormat === 'tex' ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'bg-muted border-muted-foreground/30 text-muted-foreground hover:bg-muted/80'}`}
                                         >
                                             {t.latex}
                                         </button>
                                         <button 
                                             onClick={() => setDownloadFormat('md')}
-                                            className={`flex-1 py-2 px-4 rounded-lg border text-sm font-medium transition-all ${downloadFormat === 'md' ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:bg-zinc-800/80'}`}
+                                            className={`flex-1 py-2 px-4 rounded-lg border text-sm font-medium transition-all ${downloadFormat === 'md' ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'bg-muted border-muted-foreground/30 text-muted-foreground hover:bg-muted/80'}`}
                                         >
                                             {t.markdown}
                                         </button>
@@ -1226,35 +1226,35 @@ ${explanations.join("\n\\hrule\n")}
 
                                 {/* Additional Content */}
                                 <div className="space-y-3 pt-2">
-                                    <label className="flex items-center gap-3 p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50 cursor-pointer hover:bg-zinc-800 transition-colors">
+                                    <label className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-muted-foreground/30 cursor-pointer hover:bg-muted transition-colors">
                                         <input 
                                             type="checkbox" 
                                             checked={exportIncludePDF}
                                             onChange={(e) => setExportIncludePDF(e.target.checked)}
-                                            className="w-4 h-4 rounded border-zinc-600 bg-zinc-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                                            className="w-4 h-4 rounded border-muted-foreground/50 bg-muted text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
                                         />
                                         <div className="flex-1">
-                                            <div className="flex items-center gap-2 text-sm font-medium text-zinc-200">
+                                            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                                                 <FileImage size={16} />
                                                 {t.includeHandwritingPDF}
                                             </div>
-                                            <div className="text-xs text-zinc-500 mt-0.5">{t.exportCanvasPDF}</div>
+                                            <div className="text-xs text-muted-foreground mt-0.5">{t.exportCanvasPDF}</div>
                                         </div>
                                     </label>
 
-                                    <label className="flex items-center gap-3 p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50 cursor-pointer hover:bg-zinc-800 transition-colors">
+                                    <label className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-muted-foreground/30 cursor-pointer hover:bg-muted transition-colors">
                                         <input 
                                             type="checkbox" 
                                             checked={exportIncludeAnalysis}
                                             onChange={(e) => setExportIncludeAnalysis(e.target.checked)}
-                                            className="w-4 h-4 rounded border-zinc-600 bg-zinc-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                                            className="w-4 h-4 rounded border-muted-foreground/50 bg-muted text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
                                         />
                                         <div className="flex-1">
-                                            <div className="flex items-center gap-2 text-sm font-medium text-zinc-200">
+                                            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                                                 <Sparkles size={16} />
                                                 {t.includeAIAnalysis}
                                             </div>
-                                            <div className="text-xs text-zinc-500 mt-0.5">{t.bundleExplanations}</div>
+                                            <div className="text-xs text-muted-foreground mt-0.5">{t.bundleExplanations}</div>
                                         </div>
                                     </label>
                                 </div>
@@ -1263,7 +1263,7 @@ ${explanations.join("\n\\hrule\n")}
                             <button 
                                 onClick={handleExport}
                                 disabled={isExporting}
-                                className="flex items-center justify-center gap-2 bg-white text-black px-6 py-3 rounded-full font-semibold hover:bg-zinc-200 transition-colors w-full mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                                className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-full font-semibold hover:bg-primary/90 transition-colors w-full mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
                             >
                                 {isExporting ? (
                                     <>{t.processing}</>
