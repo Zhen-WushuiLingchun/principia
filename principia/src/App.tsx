@@ -868,7 +868,7 @@ ${explanations.join("\n\\hrule\n")}
 
   // Formula functions
   const insertFormula = (latex: string) => {
-      setContent(prev => prev + '\n\n' + latex);
+      setContent(prev => prev + '\n\n$$' + latex + '$$');
       setIsFormulaTableOpen(false);
   };
 
