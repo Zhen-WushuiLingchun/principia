@@ -322,8 +322,33 @@ function App() {
                 } catch (error) {
                     console.error('Error getting progress:', error);
                     clearInterval(pollingInterval);
+                    // 如果获取进度失败，使用假进度条
+                    startFakeProgress();
                 }
             }, 500); // Poll every 500ms
+        } else {
+            // 如果没有 task_id，使用假进度条
+            startFakeProgress();
+        }
+        
+        // 假进度条函数
+        function startFakeProgress() {
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 1;
+                if (progress <= 95) {
+                    setOcrProgress(progress);
+                }
+            }, 300);
+            
+            // 保存 interval ID，以便在完成时清除
+            const fakeProgressInterval = interval;
+            
+            // 当 OCR 完成时清除假进度条
+            setTimeout(() => {
+                clearInterval(fakeProgressInterval);
+                setOcrProgress(100);
+            }, 6000); // 假设 OCR 过程需要 6 秒
         }
         
         // If pageIndex is provided, try to update that specific page section
@@ -379,9 +404,18 @@ function App() {
       setIsRecognizing(true);
       setOcrProgress(0);
       setOcrTaskId(null);
+      
+      // 启动假进度条
+      let progress = 0;
+      const interval = setInterval(() => {
+          progress += 1;
+          if (progress <= 95) {
+              setOcrProgress(progress);
+          }
+      }, 300);
+      
       try {
           let currentContent = content; // Work on a local copy to chain updates
-          const totalPages = changedPages.length;
           
           // Process pages sequentially to maintain order and context
           for (let i = 0; i < changedPages.length; i++) {
@@ -389,9 +423,6 @@ function App() {
               const { pageIndex, imageData } = page;
               const pageNum = pageIndex + 1;
               const pageMarker = `<!-- PAGE ${pageNum} -->`;
-              
-              // Update progress for page processing
-              setOcrProgress(Math.round((i / totalPages) * 100));
               
               // 1. Determine Context
               let previousContext = "";
@@ -459,11 +490,15 @@ function App() {
               }
           }
           
-          setContent(currentContent);
+          // 清除假进度条
+          clearInterval(interval);
           setOcrProgress(100);
+          setContent(currentContent);
           
       } catch (error) {
           console.error(error);
+          // 清除假进度条
+          clearInterval(interval);
           alert("Smart recognition failed. " + (error as Error).message);
       } finally {
           setIsRecognizing(false);
