@@ -1,10 +1,6 @@
 #!/usr/bin/env node
-import { spawn, execSync } from 'child_process';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const { spawn, execSync } = require('child_process');
+const { join } = require('path');
 
 const projectRoot = join(__dirname, '..', '..');
 

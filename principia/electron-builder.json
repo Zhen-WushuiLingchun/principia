@@ -1,0 +1,15 @@
+{
+  "appId": "com.principia.app",
+  "productName": "Principia",
+  "directories": {
+    "output": "dist-electron"
+  },
+  "files": [
+    "electron/**/*",
+    "dist/**/*"
+  ],
+  "win": {
+    "target": ["nsis", "portable"],
+    "icon": "public/favicon.png"
+  }
+}

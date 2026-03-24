@@ -40,6 +40,12 @@ interface InteractiveBadgeProps {
 }
 
 export function InteractiveBadge({ id, content, title = "Physics Model Analysis", fullContext, settings, existingAnalysis, onAnalysisComplete }: InteractiveBadgeProps) {
+  // 检测是否在 Electron 环境中运行
+  const isElectron = window.process && window.process.versions && window.process.versions.electron;
+  
+  // API 基础 URL
+  const API_BASE_URL = isElectron ? 'http://localhost:8000' : '';
+
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [position, setPosition] = useState({ top: 0, left: 0 });
@@ -78,7 +84,7 @@ export function InteractiveBadge({ id, content, title = "Physics Model Analysis"
             body.visionConfig = currentSettings.vision;
         }
 
-        const response = await fetch('/api/analyze', {
+        const response = await fetch(`${API_BASE_URL}/api/analyze`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)

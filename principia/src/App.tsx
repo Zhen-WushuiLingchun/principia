@@ -5,7 +5,7 @@ import { HandwritingCanvas } from './components/HandwritingCanvas'
 import type { BackgroundType } from './components/HandwritingCanvas'
 import type { HandwritingCanvasRef } from './components/HandwritingCanvas'
 import { Renderer } from './components/Renderer'
-import { Download, Settings, PenTool, Type, X, ArrowRightLeft, Sparkles, FileImage, Archive, Clock, BookOpen, Sun, Moon, Trash2, Languages } from 'lucide-react';
+import { Download, Settings, PenTool, Type, X, ArrowRightLeft, Sparkles, FileImage, Archive, Clock, BookOpen, Sun, Moon, Trash2, Languages, Image, Scan, Loader2 } from 'lucide-react';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { saveAs } from 'file-saver'
@@ -41,8 +41,14 @@ interface ConvertRequestBody {
 }
 
 function App() {
+  // 刷新（清屏）功能
+  const handleRefresh = () => {
+    window.location.reload();
+  };
   const [content, setContent] = useState<string>("")
-  const [inputMode, setInputMode] = useState<'text' | 'handwriting'>('text');
+  const [inputMode, setInputMode] = useState<'text' | 'handwriting' | 'image'>('text');
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isRecognizing, setIsRecognizing] = useState(false);
   const [ocrProgress, setOcrProgress] = useState<number>(0);
   const [_ocrTaskId, setOcrTaskId] = useState<string | null>(null);
@@ -70,6 +76,12 @@ function App() {
   const [isMobile, setIsMobile] = useState(false);
   const [mobileViewMode, setMobileViewMode] = useState<'write' | 'type' | 'preview'>('write');
   
+  // 检测是否在 Electron 环境中运行
+  const isElectron = window.process && window.process.versions && window.process.versions.electron;
+  
+  // API 基础 URL
+  const API_BASE_URL = isElectron ? 'http://localhost:8000' : '';
+
   // Theme State
   const [isDarkMode, setIsDarkMode] = useState(() => {
     // Check system preference or stored preference
@@ -119,6 +131,7 @@ function App() {
     export: lang === 'en' ? 'Export' : '导出',
     write: lang === 'en' ? 'Write' : '书写',
     type: lang === 'en' ? 'Type' : '输入',
+    image: lang === 'en' ? 'Image' : '图像',
     explain: lang === 'en' ? 'Explain' : '解释',
     switchingFormat: lang === 'en' ? `Switching to ${downloadFormat.toUpperCase()} format will use AI to restructure your document. \n\nThis process will rewrite formatting (headers, lists, etc.) to match ${downloadFormat === 'tex' ? 'LaTeX' : 'Markdown'} standards.\n\nDo you want to proceed?` : `切换到 ${downloadFormat.toUpperCase()} 格式将使用 AI 重构您的文档。\n\n此过程将重写格式（标题、列表等）以匹配 ${downloadFormat === 'tex' ? 'LaTeX' : 'Markdown'} 标准。\n\n是否继续？`
   };
@@ -281,7 +294,7 @@ function App() {
             body.visionConfig = settings.vision;
         }
 
-        const response = await fetch('/api/ocr', {
+        const response = await fetch(`${API_BASE_URL}/api/ocr`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
@@ -297,7 +310,7 @@ function App() {
             // Start polling for progress
             const pollingInterval = setInterval(async () => {
                 try {
-                    const progressResponse = await fetch(`/api/ocr/progress/${data.task_id}`);
+                    const progressResponse = await fetch(`${API_BASE_URL}/api/ocr/progress/${data.task_id}`);
                     if (!progressResponse.ok) throw new Error('Failed to get progress');
                     
                     const progressData = await progressResponse.json();
@@ -312,8 +325,33 @@ function App() {
                 } catch (error) {
                     console.error('Error getting progress:', error);
                     clearInterval(pollingInterval);
+                    // 如果获取进度失败，使用假进度条
+                    startFakeProgress();
                 }
             }, 500); // Poll every 500ms
+        } else {
+            // 如果没有 task_id，使用假进度条
+            startFakeProgress();
+        }
+        
+        // 假进度条函数
+        function startFakeProgress() {
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 1;
+                if (progress <= 95) {
+                    setOcrProgress(progress);
+                }
+            }, 300);
+            
+            // 保存 interval ID，以便在完成时清除
+            const fakeProgressInterval = interval;
+            
+            // 当 OCR 完成时清除假进度条
+            setTimeout(() => {
+                clearInterval(fakeProgressInterval);
+                setOcrProgress(100);
+            }, 6000); // 假设 OCR 过程需要 6 秒
         }
         
         // If pageIndex is provided, try to update that specific page section
@@ -369,9 +407,18 @@ function App() {
       setIsRecognizing(true);
       setOcrProgress(0);
       setOcrTaskId(null);
+      
+      // 启动假进度条
+      let progress = 0;
+      const interval = setInterval(() => {
+          progress += 1;
+          if (progress <= 95) {
+              setOcrProgress(progress);
+          }
+      }, 300);
+      
       try {
           let currentContent = content; // Work on a local copy to chain updates
-          const totalPages = changedPages.length;
           
           // Process pages sequentially to maintain order and context
           for (let i = 0; i < changedPages.length; i++) {
@@ -379,9 +426,6 @@ function App() {
               const { pageIndex, imageData } = page;
               const pageNum = pageIndex + 1;
               const pageMarker = `<!-- PAGE ${pageNum} -->`;
-              
-              // Update progress for page processing
-              setOcrProgress(Math.round((i / totalPages) * 100));
               
               // 1. Determine Context
               let previousContext = "";
@@ -422,7 +466,7 @@ function App() {
                   body.visionConfig = settings.vision;
               }
 
-              const response = await fetch('/api/ocr', {
+              const response = await fetch(`${API_BASE_URL}/api/ocr`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify(body)
@@ -449,11 +493,15 @@ function App() {
               }
           }
           
-          setContent(currentContent);
+          // 清除假进度条
+          clearInterval(interval);
           setOcrProgress(100);
+          setContent(currentContent);
           
       } catch (error) {
           console.error(error);
+          // 清除假进度条
+          clearInterval(interval);
           alert("Smart recognition failed. " + (error as Error).message);
       } finally {
           setIsRecognizing(false);
@@ -489,7 +537,7 @@ function App() {
             body.reasoningConfig = settings.reasoning;
         }
 
-        const response = await fetch('/api/convert', {
+        const response = await fetch(`${API_BASE_URL}/api/convert`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
@@ -646,7 +694,7 @@ function App() {
               }
     
               // Call API to ensure content is in the correct format (and rewritten by AI)
-              const conversionResponse = await fetch('/api/convert', {
+              const conversionResponse = await fetch(`${API_BASE_URL}/api/convert`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify(conversionBody)
@@ -823,7 +871,7 @@ ${explanations.join("\n\\hrule\n")}
 
   // Formula functions
   const insertFormula = (latex: string) => {
-      setContent(prev => prev + '\n\n' + latex);
+      setContent(prev => prev + '\n\n$$' + latex + '$$');
       setIsFormulaTableOpen(false);
   };
 
@@ -833,7 +881,7 @@ ${explanations.join("\n\\hrule\n")}
       <header className="h-14 shrink-0 border-b border-border flex items-center justify-between px-4 sm:px-6 bg-background/50 backdrop-blur-md z-50">
         <div className="flex items-center gap-2">
           <button onClick={() => setIsLogoModalOpen(true)} className="outline-none hover:opacity-80 transition-opacity">
-            <img src="/favicon.png" alt="Logo" className="w-6 h-6 rounded-full bg-white" />
+            <img src="./favicon.png" alt="Logo" className="w-6 h-6 rounded-full bg-white" />
           </button>
           <span className="font-semibold tracking-tight text-foreground">Principia</span>
           <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px] uppercase font-bold tracking-wider border border-border hidden sm:inline-block">Alpha</span>
@@ -858,6 +906,14 @@ ${explanations.join("\n\\hrule\n")}
                  >
                     <PenTool size={14} />
                     <span className="text-[10px] font-medium hidden sm:inline">{lang === 'en' ? 'Draw' : '绘图'}</span>
+                 </button>
+                 <button 
+                    onClick={() => setInputMode('image')}
+                    className={`p-1.5 rounded-md transition-all flex items-center gap-1.5 ${inputMode === 'image' ? 'bg-accent text-accent-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                    title={lang === 'en' ? 'Image Recognition Mode' : '图像识别模式'}
+                 >
+                    <Image size={14} />
+                    <span className="text-[10px] font-medium hidden sm:inline">{lang === 'en' ? 'Image' : '图像'}</span>
                  </button>
               </div>
           )}
@@ -987,10 +1043,170 @@ ${explanations.join("\n\\hrule\n")}
                             }}
                             initialPage={currentPage}
                             onPageChange={setCurrentPage}
+                            isDarkMode={isDarkMode}
                         />
                     </div>
                     <div className={`h-full w-full absolute inset-0 bg-background ${mobileViewMode === 'type' ? 'z-10' : 'z-0 invisible'}`}>
-                        <Editor value={content} onChange={setContent} />
+                        <Editor value={content} onChange={setContent} lang={lang} />
+                    </div>
+                    <div className={`h-full w-full absolute inset-0 bg-background ${inputMode === 'image' ? 'z-10' : 'z-0 invisible'}`}>
+                        <div className="h-full w-full p-6">
+                            <div className="max-w-4xl mx-auto">
+                                <h2 className="text-xl font-bold mb-6 text-foreground">{lang === 'en' ? 'Image Recognition' : '图像识别'}</h2>
+                                
+                                {/* Image Upload */}
+                                <div className="mb-8 border border-border rounded-lg p-6 bg-muted/30">
+                                    <input 
+                                        type="file" 
+                                        id="image-upload" 
+                                        multiple 
+                                        accept="image/*" 
+                                        className="hidden"
+                                        onChange={(e) => {
+                                            const files = Array.from(e.target.files || []);
+                                            // Check if adding new files would exceed the limit
+                                            setSelectedImages(prev => {
+                                                const total = prev.length + files.length;
+                                                if (total > 9) {
+                                                    const allowedFiles = files.slice(0, 9 - prev.length);
+                                                    alert(lang === 'en' ? `Maximum 9 images allowed. Only ${allowedFiles.length} additional images added.` : `最多允许9张图片。仅添加了${allowedFiles.length}张额外图片。`);
+                                                    return [...prev, ...allowedFiles];
+                                                }
+                                                return [...prev, ...files];
+                                            });
+                                            
+                                            // Generate previews for new files and add to existing list
+                                            setImagePreviews(prev => {
+                                                const currentCount = prev.length;
+                                                const maxAllowed = 9 - currentCount;
+                                                const filesToAdd = files.slice(0, maxAllowed);
+                                                const newPreviews = filesToAdd.map(file => URL.createObjectURL(file));
+                                                return [...prev, ...newPreviews];
+                                            });
+                                        }}
+                                    />
+                                    <label htmlFor="image-upload" className="cursor-pointer">
+                                        <Image size={48} className="mx-auto text-muted-foreground mb-2" />
+                                        <p className="text-sm text-muted-foreground">{lang === 'en' ? 'Click to select images or drag and drop' : '点击选择图片或拖放'}</p>
+                                        <p className="text-xs text-muted-foreground mt-1">{lang === 'en' ? `${selectedImages.length}/9 images` : `${selectedImages.length}/9 张图片`}</p>
+                                    </label>
+                                </div>
+                                
+                                {/* Image Previews */}
+                                {selectedImages.length > 0 && (
+                                    <div className="mb-8">
+                                        <h3 className="text-sm font-medium text-muted-foreground mb-3">{lang === 'en' ? 'Selected Images' : '已选择的图片'}</h3>
+                                        <div className="max-h-80 overflow-y-auto pr-2">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                                {imagePreviews.map((preview, index) => (
+                                                    <div key={index} className="relative border border-border rounded-lg overflow-hidden">
+                                                        <img src={preview} alt={`Preview ${index + 1}`} className="w-full h-40 object-cover" />
+                                                        <button 
+                                                            className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm rounded-full p-1 hover:bg-background transition-colors"
+                                                            onClick={() => {
+                                                                const newImages = selectedImages.filter((_, i) => i !== index);
+                                                                const newPreviews = imagePreviews.filter((_, i) => i !== index);
+                                                                setSelectedImages(newImages);
+                                                                setImagePreviews(newPreviews);
+                                                            }}
+                                                        >
+                                                            <X size={16} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {/* Recognition Button */}
+                                <div className="flex justify-center">
+                                    <button 
+                                        onClick={async () => {
+                                            if (selectedImages.length === 0) {
+                                                alert(lang === 'en' ? 'Please select at least one image' : '请至少选择一张图片');
+                                                return;
+                                            }
+                                            
+                                            setIsRecognizing(true);
+                                            setOcrProgress(0);
+                                            
+                                            // Start fake progress
+                                            function startFakeProgress() {
+                                                let progress = 0;
+                                                const interval = setInterval(() => {
+                                                    progress += 1;
+                                                    if (progress <= 95) {
+                                                        setOcrProgress(progress);
+                                                    }
+                                                }, 300);
+                                                
+                                                // Save interval ID to clear later
+                                                const fakeProgressInterval = interval;
+                                                
+                                                // Clear fake progress when OCR completes
+                                                setTimeout(() => {
+                                                    clearInterval(fakeProgressInterval);
+                                                    setOcrProgress(100);
+                                                }, 6000); // Assume OCR takes 6 seconds
+                                            }
+                                            
+                                            startFakeProgress();
+                                            
+                                            try {
+                                                // Process each image
+                                                for (let i = 0; i < selectedImages.length; i++) {
+                                                    const file = selectedImages[i];
+                                                    const reader = new FileReader();
+                                                    
+                                                    reader.onload = async (e) => {
+                                                        const imageData = e.target?.result as string;
+                                                        await handleRecognize(imageData);
+                                                    };
+                                                    
+                                                    reader.readAsDataURL(file);
+                                                }
+                                            } catch (error) {
+                                                console.error('Error recognizing images:', error);
+                                                alert(lang === 'en' ? 'Recognition failed' : '识别失败');
+                                            } finally {
+                                                setIsRecognizing(false);
+                                                setOcrProgress(0);
+                                            }
+                                        }}
+                                        disabled={isRecognizing || selectedImages.length === 0}
+                                        className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-full font-semibold hover:bg-primary/90 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                                    >
+                                        {isRecognizing ? (
+                                            <>
+                                                <Loader2 size={18} className="animate-spin" />
+                                                {lang === 'en' ? 'Recognizing...' : '识别中...'}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Scan size={18} />
+                                                {lang === 'en' ? 'Recognize Text' : '识别文字'}
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                                
+                                {/* Progress Bar */}
+                                {isRecognizing && (
+                                    <div className="mt-6">
+                                        <div className="w-full bg-muted rounded-full h-4 mb-2">
+                                            <div 
+                                                className="bg-blue-500 h-4 rounded-full transition-all duration-300 ease-in-out" 
+                                                style={{ width: `${ocrProgress}%` }}
+                                            ></div>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground text-center">
+                                            {lang === 'en' ? `Progress: ${ocrProgress}%` : `进度: ${ocrProgress}%`}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                     <div className={`h-full w-full absolute inset-0 bg-background ${mobileViewMode === 'preview' ? 'z-10' : 'z-0 invisible'}`}>
                         <Renderer 
@@ -1005,28 +1221,35 @@ ${explanations.join("\n\\hrule\n")}
                 {/* Mobile Bottom Navigation */}
                 <div className="h-16 bg-card border-t border-border flex items-center justify-around px-2 shrink-0 z-50 safe-area-bottom">
                     <button 
-                        onClick={() => setMobileViewMode('write')}
-                        className={`flex flex-col items-center justify-center gap-1 p-2 rounded-lg w-full transition-colors ${mobileViewMode === 'write' ? 'text-blue-400' : 'text-muted-foreground hover:text-foreground'}`}
+                        onClick={() => { setMobileViewMode('write'); setInputMode('handwriting'); }}
+                        className={`flex flex-col items-center justify-center gap-1 p-2 rounded-lg w-full transition-colors ${mobileViewMode === 'write' && inputMode !== 'image' ? 'text-blue-400' : 'text-muted-foreground hover:text-foreground'}`}
                     >
                         <PenTool size={20} />
-                        <span className="text-[10px] font-medium">Write</span>
+                        <span className="text-[10px] font-medium">{t.write}</span>
                     </button>
                     <button 
-                        onClick={() => setMobileViewMode('type')}
-                        className={`flex flex-col items-center justify-center gap-1 p-2 rounded-lg w-full transition-colors ${mobileViewMode === 'type' ? 'text-blue-400' : 'text-muted-foreground hover:text-foreground'}`}
+                        onClick={() => { setMobileViewMode('type'); setInputMode('text'); }}
+                        className={`flex flex-col items-center justify-center gap-1 p-2 rounded-lg w-full transition-colors ${mobileViewMode === 'type' && inputMode !== 'image' ? 'text-blue-400' : 'text-muted-foreground hover:text-foreground'}`}
                     >
                         <Type size={20} />
-                        <span className="text-[10px] font-medium">Type</span>
+                        <span className="text-[10px] font-medium">{t.type}</span>
+                    </button>
+                    <button 
+                        onClick={() => setInputMode('image')}
+                        className={`flex flex-col items-center justify-center gap-1 p-2 rounded-lg w-full transition-colors ${inputMode === 'image' ? 'text-blue-400' : 'text-muted-foreground hover:text-foreground'}`}
+                    >
+                        <Image size={20} />
+                        <span className="text-[10px] font-medium">{t.image}</span>
                     </button>
                     <button 
                         onClick={() => setMobileViewMode('preview')}
-                        className={`flex flex-col items-center justify-center gap-1 p-2 rounded-lg w-full transition-colors ${mobileViewMode === 'preview' ? 'text-blue-400' : 'text-muted-foreground hover:text-foreground'}`}
+                        className={`flex flex-col items-center justify-center gap-1 p-2 rounded-lg w-full transition-colors ${mobileViewMode === 'preview' && inputMode !== 'image' ? 'text-blue-400' : 'text-muted-foreground hover:text-foreground'}`}
                     >
                         <div className="relative">
                             <Sparkles size={20} />
                             <div className="absolute -top-1 -right-1 w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
                         </div>
-                        <span className="text-[10px] font-medium">Explain</span>
+                        <span className="text-[10px] font-medium">{t.explain}</span>
                     </button>
                 </div>
             </div>
@@ -1037,7 +1260,7 @@ ${explanations.join("\n\\hrule\n")}
                 <>
                 <Panel defaultSize={50} minSize={30} className="h-full relative">
                     <div className={`h-full w-full ${inputMode === 'text' ? 'block' : 'hidden'}`}>
-                    <Editor value={content} onChange={setContent} />
+                    <Editor value={content} onChange={setContent} lang={lang} />
                     </div>
                     <div className={`h-full w-full ${inputMode === 'handwriting' ? 'block' : 'hidden'}`}>
                     <HandwritingCanvas 
@@ -1055,7 +1278,168 @@ ${explanations.join("\n\\hrule\n")}
                         }}
                         initialPage={currentPage}
                         onPageChange={setCurrentPage}
+                        isDarkMode={isDarkMode}
                     />
+                    </div>
+                    <div className={`h-full w-full ${inputMode === 'image' ? 'block' : 'hidden'} p-6`}>
+                        <div className="max-w-4xl mx-auto">
+                            <h2 className="text-xl font-bold mb-6 text-foreground">{lang === 'en' ? 'Image Recognition' : '图像识别'}</h2>
+                            
+                            {/* Image Upload */}
+                            <div className="mb-8">
+                                <label className="block text-sm font-medium text-muted-foreground mb-2">{lang === 'en' ? 'Select Images' : '选择图片'}</label>
+                                <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:bg-muted transition-colors cursor-pointer">
+                                    <input 
+                                        type="file" 
+                                        multiple 
+                                        accept="image/*" 
+                                        className="hidden" 
+                                        id="image-upload"
+                                        onChange={(e) => {
+                                            const files = Array.from(e.target.files || []);
+                                            // Check if adding new files would exceed the limit
+                                            setSelectedImages(prev => {
+                                                const total = prev.length + files.length;
+                                                if (total > 9) {
+                                                    const allowedFiles = files.slice(0, 9 - prev.length);
+                                                    alert(lang === 'en' ? `Maximum 9 images allowed. Only ${allowedFiles.length} additional images added.` : `最多允许9张图片。仅添加了${allowedFiles.length}张额外图片。`);
+                                                    return [...prev, ...allowedFiles];
+                                                }
+                                                return [...prev, ...files];
+                                            });
+                                            
+                                            // Generate previews for new files and add to existing list
+                                            setImagePreviews(prev => {
+                                                const currentCount = prev.length;
+                                                const maxAllowed = 9 - currentCount;
+                                                const filesToAdd = files.slice(0, maxAllowed);
+                                                const newPreviews = filesToAdd.map(file => URL.createObjectURL(file));
+                                                return [...prev, ...newPreviews];
+                                            });
+                                        }}
+                                    />
+                                    <label htmlFor="image-upload" className="cursor-pointer">
+                                        <Image size={48} className="mx-auto text-muted-foreground mb-2" />
+                                        <p className="text-sm text-muted-foreground">{lang === 'en' ? 'Click to select images or drag and drop' : '点击选择图片或拖放'}</p>
+                                        <p className="text-xs text-muted-foreground mt-1">{lang === 'en' ? `${selectedImages.length}/9 images` : `${selectedImages.length}/9 张图片`}</p>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            {/* Image Previews */}
+                            {selectedImages.length > 0 && (
+                                <div className="mb-8">
+                                    <h3 className="text-sm font-medium text-muted-foreground mb-3">{lang === 'en' ? 'Selected Images' : '已选择的图片'}</h3>
+                                    <div className="max-h-80 overflow-y-auto pr-2">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                            {imagePreviews.map((preview, index) => (
+                                                <div key={index} className="relative border border-border rounded-lg overflow-hidden">
+                                                    <img src={preview} alt={`Preview ${index + 1}`} className="w-full h-40 object-cover" />
+                                                    <button 
+                                                        className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm rounded-full p-1 hover:bg-background transition-colors"
+                                                        onClick={() => {
+                                                            const newImages = selectedImages.filter((_, i) => i !== index);
+                                                            const newPreviews = imagePreviews.filter((_, i) => i !== index);
+                                                            setSelectedImages(newImages);
+                                                            setImagePreviews(newPreviews);
+                                                        }}
+                                                    >
+                                                        <X size={16} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* Recognition Button */}
+                            <div className="flex justify-center">
+                                <button 
+                                    onClick={async () => {
+                                        if (selectedImages.length === 0) {
+                                            alert(lang === 'en' ? 'Please select at least one image' : '请至少选择一张图片');
+                                            return;
+                                        }
+                                        
+                                        setIsRecognizing(true);
+                                        setOcrProgress(0);
+                                        
+                                        // Start fake progress
+                                        function startFakeProgress() {
+                                            let progress = 0;
+                                            const interval = setInterval(() => {
+                                                progress += 1;
+                                                if (progress <= 95) {
+                                                    setOcrProgress(progress);
+                                                }
+                                            }, 300);
+                                            
+                                            // Save interval ID to clear later
+                                            const fakeProgressInterval = interval;
+                                            
+                                            // Clear fake progress when OCR completes
+                                            setTimeout(() => {
+                                                clearInterval(fakeProgressInterval);
+                                                setOcrProgress(100);
+                                            }, 6000); // Assume OCR takes 6 seconds
+                                        }
+                                        
+                                        startFakeProgress();
+                                        
+                                        try {
+                                            // Process each image
+                                            for (let i = 0; i < selectedImages.length; i++) {
+                                                const file = selectedImages[i];
+                                                const reader = new FileReader();
+                                                
+                                                reader.onload = async (e) => {
+                                                    const imageData = e.target?.result as string;
+                                                    await handleRecognize(imageData);
+                                                };
+                                                
+                                                reader.readAsDataURL(file);
+                                            }
+                                        } catch (error) {
+                                            console.error('Error recognizing images:', error);
+                                            alert(lang === 'en' ? 'Recognition failed' : '识别失败');
+                                        } finally {
+                                            setIsRecognizing(false);
+                                            setOcrProgress(0);
+                                        }
+                                    }}
+                                    disabled={isRecognizing || selectedImages.length === 0}
+                                    className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-full font-semibold hover:bg-primary/90 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                                >
+                                    {isRecognizing ? (
+                                        <>
+                                            <Loader2 size={18} className="animate-spin" />
+                                            {lang === 'en' ? 'Recognizing...' : '识别中...'}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Scan size={18} />
+                                            {lang === 'en' ? 'Recognize Text' : '识别文字'}
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                            
+                            {/* Progress Bar */}
+                            {isRecognizing && (
+                                <div className="mt-4">
+                                    <div className="w-full bg-muted rounded-full h-2">
+                                        <div 
+                                            className="bg-primary h-2 rounded-full transition-all duration-300 ease-out"
+                                            style={{ width: `${ocrProgress}%` }}
+                                        ></div>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mt-1 text-center">
+                                        {lang === 'en' ? `Progress: ${ocrProgress}%` : `进度: ${ocrProgress}%`}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </Panel>
                 
@@ -1089,7 +1473,7 @@ ${explanations.join("\n\\hrule\n")}
                 
                 <Panel defaultSize={50} minSize={30} className="h-full relative">
                     <div className={`h-full w-full ${inputMode === 'text' ? 'block' : 'hidden'}`}>
-                    <Editor value={content} onChange={setContent} />
+                    <Editor value={content} onChange={setContent} lang={lang} />
                     </div>
                     <div className={`h-full w-full ${inputMode === 'handwriting' ? 'block' : 'hidden'}`}>
                     <HandwritingCanvas 
@@ -1107,7 +1491,168 @@ ${explanations.join("\n\\hrule\n")}
                         }}
                         initialPage={currentPage}
                         onPageChange={setCurrentPage}
+                        isDarkMode={isDarkMode}
                     />
+                    </div>
+                    <div className={`h-full w-full ${inputMode === 'image' ? 'block' : 'hidden'} p-6`}>
+                        <div className="max-w-4xl mx-auto">
+                            <h2 className="text-xl font-bold mb-6 text-foreground">{lang === 'en' ? 'Image Recognition' : '图像识别'}</h2>
+                            
+                            {/* Image Upload */}
+                            <div className="mb-8">
+                                <label className="block text-sm font-medium text-muted-foreground mb-2">{lang === 'en' ? 'Select Images' : '选择图片'}</label>
+                                <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:bg-muted transition-colors cursor-pointer">
+                                    <input 
+                                        type="file" 
+                                        multiple 
+                                        accept="image/*" 
+                                        className="hidden" 
+                                        id="image-upload"
+                                        onChange={(e) => {
+                                            const files = Array.from(e.target.files || []);
+                                            // Check if adding new files would exceed the limit
+                                            setSelectedImages(prev => {
+                                                const total = prev.length + files.length;
+                                                if (total > 9) {
+                                                    const allowedFiles = files.slice(0, 9 - prev.length);
+                                                    alert(lang === 'en' ? `Maximum 9 images allowed. Only ${allowedFiles.length} additional images added.` : `最多允许9张图片。仅添加了${allowedFiles.length}张额外图片。`);
+                                                    return [...prev, ...allowedFiles];
+                                                }
+                                                return [...prev, ...files];
+                                            });
+                                            
+                                            // Generate previews for new files and add to existing list
+                                            setImagePreviews(prev => {
+                                                const currentCount = prev.length;
+                                                const maxAllowed = 9 - currentCount;
+                                                const filesToAdd = files.slice(0, maxAllowed);
+                                                const newPreviews = filesToAdd.map(file => URL.createObjectURL(file));
+                                                return [...prev, ...newPreviews];
+                                            });
+                                        }}
+                                    />
+                                    <label htmlFor="image-upload" className="cursor-pointer">
+                                        <Image size={48} className="mx-auto text-muted-foreground mb-2" />
+                                        <p className="text-sm text-muted-foreground">{lang === 'en' ? 'Click to select images or drag and drop' : '点击选择图片或拖放'}</p>
+                                        <p className="text-xs text-muted-foreground mt-1">{lang === 'en' ? `${selectedImages.length}/9 images` : `${selectedImages.length}/9 张图片`}</p>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            {/* Image Previews */}
+                            {selectedImages.length > 0 && (
+                                <div className="mb-8">
+                                    <h3 className="text-sm font-medium text-muted-foreground mb-3">{lang === 'en' ? 'Selected Images' : '已选择的图片'}</h3>
+                                    <div className="max-h-80 overflow-y-auto pr-2">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                            {imagePreviews.map((preview, index) => (
+                                                <div key={index} className="relative border border-border rounded-lg overflow-hidden">
+                                                    <img src={preview} alt={`Preview ${index + 1}`} className="w-full h-40 object-cover" />
+                                                    <button 
+                                                        className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm rounded-full p-1 hover:bg-background transition-colors"
+                                                        onClick={() => {
+                                                            const newImages = selectedImages.filter((_, i) => i !== index);
+                                                            const newPreviews = imagePreviews.filter((_, i) => i !== index);
+                                                            setSelectedImages(newImages);
+                                                            setImagePreviews(newPreviews);
+                                                        }}
+                                                    >
+                                                        <X size={16} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* Recognition Button */}
+                            <div className="flex justify-center">
+                                <button 
+                                    onClick={async () => {
+                                        if (selectedImages.length === 0) {
+                                            alert(lang === 'en' ? 'Please select at least one image' : '请至少选择一张图片');
+                                            return;
+                                        }
+                                        
+                                        setIsRecognizing(true);
+                                        setOcrProgress(0);
+                                        
+                                        // Start fake progress
+                                        function startFakeProgress() {
+                                            let progress = 0;
+                                            const interval = setInterval(() => {
+                                                progress += 1;
+                                                if (progress <= 95) {
+                                                    setOcrProgress(progress);
+                                                }
+                                            }, 300);
+                                            
+                                            // Save interval ID to clear later
+                                            const fakeProgressInterval = interval;
+                                            
+                                            // Clear fake progress when OCR completes
+                                            setTimeout(() => {
+                                                clearInterval(fakeProgressInterval);
+                                                setOcrProgress(100);
+                                            }, 6000); // Assume OCR takes 6 seconds
+                                        }
+                                        
+                                        startFakeProgress();
+                                        
+                                        try {
+                                            // Process each image
+                                            for (let i = 0; i < selectedImages.length; i++) {
+                                                const file = selectedImages[i];
+                                                const reader = new FileReader();
+                                                
+                                                reader.onload = async (e) => {
+                                                    const imageData = e.target?.result as string;
+                                                    await handleRecognize(imageData);
+                                                };
+                                                
+                                                reader.readAsDataURL(file);
+                                            }
+                                        } catch (error) {
+                                            console.error('Error recognizing images:', error);
+                                            alert(lang === 'en' ? 'Recognition failed' : '识别失败');
+                                        } finally {
+                                            setIsRecognizing(false);
+                                            setOcrProgress(0);
+                                        }
+                                    }}
+                                    disabled={isRecognizing || selectedImages.length === 0}
+                                    className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-full font-semibold hover:bg-primary/90 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                                >
+                                    {isRecognizing ? (
+                                        <>
+                                            <Loader2 size={18} className="animate-spin" />
+                                            {lang === 'en' ? 'Recognizing...' : '识别中...'}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Scan size={18} />
+                                            {lang === 'en' ? 'Recognize Text' : '识别文字'}
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                            
+                            {/* Progress Bar */}
+                            {isRecognizing && (
+                                <div className="mt-4">
+                                    <div className="w-full bg-muted rounded-full h-2">
+                                        <div 
+                                            className="bg-primary h-2 rounded-full transition-all duration-300 ease-out"
+                                            style={{ width: `${ocrProgress}%` }}
+                                        ></div>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mt-1 text-center">
+                                        {lang === 'en' ? `Progress: ${ocrProgress}%` : `进度: ${ocrProgress}%`}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </Panel>
                 </>
@@ -1140,18 +1685,18 @@ ${explanations.join("\n\\hrule\n")}
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0.9, opacity: 0 }}
-                        className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl shadow-2xl max-w-md w-full relative"
+                        className="bg-background border border-border p-6 rounded-2xl shadow-2xl max-w-md w-full relative"
                         onClick={e => e.stopPropagation()}
                     >
                         <button 
                             onClick={() => setIsExportModalOpen(false)}
-                            className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors"
+                            className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
                         >
                             <X size={20} />
                         </button>
                         
                         <div className="flex flex-col gap-6">
-                            <div className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+                            <div className="text-xl font-bold text-foreground tracking-tight flex items-center gap-2">
                                 <Download size={20} className="text-blue-400" />
                                 {t.exportOptions}
                             </div>
@@ -1159,17 +1704,17 @@ ${explanations.join("\n\\hrule\n")}
                             <div className="space-y-4">
                                 {/* Format Selection */}
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-zinc-400">{t.documentFormat}</label>
+                                    <label className="text-sm font-medium text-muted-foreground">{t.documentFormat}</label>
                                     <div className="flex gap-2">
                                         <button 
                                             onClick={() => setDownloadFormat('tex')}
-                                            className={`flex-1 py-2 px-4 rounded-lg border text-sm font-medium transition-all ${downloadFormat === 'tex' ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:bg-zinc-800/80'}`}
+                                            className={`flex-1 py-2 px-4 rounded-lg border text-sm font-medium transition-all ${downloadFormat === 'tex' ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'bg-muted border-muted-foreground/30 text-muted-foreground hover:bg-muted/80'}`}
                                         >
                                             {t.latex}
                                         </button>
                                         <button 
                                             onClick={() => setDownloadFormat('md')}
-                                            className={`flex-1 py-2 px-4 rounded-lg border text-sm font-medium transition-all ${downloadFormat === 'md' ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:bg-zinc-800/80'}`}
+                                            className={`flex-1 py-2 px-4 rounded-lg border text-sm font-medium transition-all ${downloadFormat === 'md' ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'bg-muted border-muted-foreground/30 text-muted-foreground hover:bg-muted/80'}`}
                                         >
                                             {t.markdown}
                                         </button>
@@ -1178,35 +1723,35 @@ ${explanations.join("\n\\hrule\n")}
 
                                 {/* Additional Content */}
                                 <div className="space-y-3 pt-2">
-                                    <label className="flex items-center gap-3 p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50 cursor-pointer hover:bg-zinc-800 transition-colors">
+                                    <label className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-muted-foreground/30 cursor-pointer hover:bg-muted transition-colors">
                                         <input 
                                             type="checkbox" 
                                             checked={exportIncludePDF}
                                             onChange={(e) => setExportIncludePDF(e.target.checked)}
-                                            className="w-4 h-4 rounded border-zinc-600 bg-zinc-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                                            className="w-4 h-4 rounded border-muted-foreground/50 bg-muted text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
                                         />
                                         <div className="flex-1">
-                                            <div className="flex items-center gap-2 text-sm font-medium text-zinc-200">
+                                            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                                                 <FileImage size={16} />
                                                 {t.includeHandwritingPDF}
                                             </div>
-                                            <div className="text-xs text-zinc-500 mt-0.5">{t.exportCanvasPDF}</div>
+                                            <div className="text-xs text-muted-foreground mt-0.5">{t.exportCanvasPDF}</div>
                                         </div>
                                     </label>
 
-                                    <label className="flex items-center gap-3 p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50 cursor-pointer hover:bg-zinc-800 transition-colors">
+                                    <label className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-muted-foreground/30 cursor-pointer hover:bg-muted transition-colors">
                                         <input 
                                             type="checkbox" 
                                             checked={exportIncludeAnalysis}
                                             onChange={(e) => setExportIncludeAnalysis(e.target.checked)}
-                                            className="w-4 h-4 rounded border-zinc-600 bg-zinc-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                                            className="w-4 h-4 rounded border-muted-foreground/50 bg-muted text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
                                         />
                                         <div className="flex-1">
-                                            <div className="flex items-center gap-2 text-sm font-medium text-zinc-200">
+                                            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                                                 <Sparkles size={16} />
                                                 {t.includeAIAnalysis}
                                             </div>
-                                            <div className="text-xs text-zinc-500 mt-0.5">{t.bundleExplanations}</div>
+                                            <div className="text-xs text-muted-foreground mt-0.5">{t.bundleExplanations}</div>
                                         </div>
                                     </label>
                                 </div>
@@ -1215,7 +1760,7 @@ ${explanations.join("\n\\hrule\n")}
                             <button 
                                 onClick={handleExport}
                                 disabled={isExporting}
-                                className="flex items-center justify-center gap-2 bg-white text-black px-6 py-3 rounded-full font-semibold hover:bg-zinc-200 transition-colors w-full mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                                className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-full font-semibold hover:bg-primary/90 transition-colors w-full mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
                             >
                                 {isExporting ? (
                                     <>{t.processing}</>
@@ -1261,7 +1806,7 @@ ${explanations.join("\n\\hrule\n")}
                         <div className="flex flex-col items-center gap-6">
                             <div className="text-xl font-bold text-white tracking-tight">The Principia</div>
                             <div className="w-48 h-48 bg-white rounded-full flex items-center justify-center p-2 shadow-lg">
-                                <img src="/favicon.png" alt="Large Logo" className="w-full h-full object-contain rounded-full" />
+                                <img src="./favicon.png" alt="Large Logo" className="w-full h-full object-contain rounded-full" />
                             </div>
 
                             <a 
@@ -1472,6 +2017,19 @@ ${explanations.join("\n\\hrule\n")}
             </Portal>
         )}
       </AnimatePresence>
+
+      {/* 刷新按钮 */}
+      <button
+        onClick={handleRefresh}
+        className="fixed bottom-4 right-4 w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors z-50"
+        title="刷新（清屏）"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="23 4 23 10 17 10" />
+          <polyline points="1 20 1 14 7 14" />
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+        </svg>
+      </button>
     </div>
   )
 }

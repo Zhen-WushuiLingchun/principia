@@ -1,8 +1,9 @@
 {
   "name": "the-principia",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "version": "1.3.0",
+  "main": "electron/main.js",
+  "type": "commonjs",
   "scripts": {
     "dev": "concurrently -k -n \"VITE,BACKEND\" -c \"cyan.bold,green.bold\" \"vite\" \"node scripts/start-backend.js\"",
     "build": "tsc -b && vite build",
@@ -10,7 +11,26 @@
     "preview": "vite preview",
     "install-deps": "npm install",
     "start": "npm run dev",
-    "build-frontend": "npm run build"
+    "build-frontend": "npm run build",
+    "electron:dev": "electron .",
+    "electron:build": "npm run build && electron-builder"
+  },
+  "build": {
+    "appId": "com.principia.app",
+    "productName": "Principia",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "extraResources": [
+      {
+        "from": "electron/app.exe",
+        "to": "app.exe"
+      }
+    ],
+    "win": {
+      "target": ["nsis", "portable"],
+      "icon": "public/favicon.png"
+    }
   },
   "dependencies": {
     "@types/file-saver": "^2.0.7",
@@ -40,6 +60,8 @@
     "@vitejs/plugin-react": "^5.1.1",
     "autoprefixer": "^10.4.23",
     "concurrently": "^9.2.1",
+    "electron": "^41.0.3",
+    "electron-builder": "^26.8.1",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",

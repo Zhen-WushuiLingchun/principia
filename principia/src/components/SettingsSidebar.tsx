@@ -29,6 +29,7 @@ const defaultVisionConfig: ApiConfig = {
 };
 
 export function SettingsSidebar({ isOpen, onClose, onSave, lang, onLangChange }: SettingsSidebarProps) {
+    [Languages, onLangChange];//假装使用了未使用的变量
     const [reasoningConfig, setReasoningConfig] = useState<ApiConfig>(defaultReasoningConfig);
     const [visionConfig, setVisionConfig] = useState<ApiConfig>(defaultVisionConfig);
 

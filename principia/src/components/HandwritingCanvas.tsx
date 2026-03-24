@@ -22,6 +22,7 @@ interface HandwritingCanvasProps {
   onBackgroundChange?: (type: BackgroundType, spacing: number) => void;
   initialPage?: number;
   onPageChange?: (page: number) => void;
+  isDarkMode?: boolean;
 }
 
 interface Line {
@@ -41,7 +42,8 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
   backgroundSpacing: propBackgroundSpacing = 40,
   onBackgroundChange,
   initialPage = 0,
-  onPageChange
+  onPageChange,
+  isDarkMode = true
 }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -52,9 +54,12 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
   const [currentLine, setCurrentLine] = useState<Line | null>(null);
 
   // Color palette with simplified preset colors
-  const colorPalette = [
+  const colorPalette = isDarkMode ? [
     "#ffffff", // White (default)
     "#ff4757", // Red
+  ] : [
+    "#000000", // Black (default)
+    "#d63031", // Red
   ];
   
   // Use props for background state if provided, otherwise use local state (though we expect props now)
@@ -82,12 +87,34 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
   const backgroundType = localBackgroundType;
   const backgroundSpacing = localBackgroundSpacing;
   
-  const [brushColor, setBrushColor] = useState("#ffffff");
+  const [brushColor, setBrushColor] = useState(isDarkMode ? "#ffffff" : "#000000");
   const [penRadius, setPenRadius] = useState(2);
   const [eraserRadius, setEraserRadius] = useState(10);
   const [isEraser, setIsEraser] = useState(false);
   const currentRadius = isEraser ? eraserRadius : penRadius;
   const [isPanMode, setIsPanMode] = useState(false);
+
+  // Update brush color and existing lines when theme changes
+  useEffect(() => {
+    // Update brush color if it's using the default color
+    if (brushColor === (isDarkMode ? "#000000" : "#ffffff")) {
+      setBrushColor(isDarkMode ? "#ffffff" : "#000000");
+    }
+    
+    // Update existing lines' colors for default colors (black/white)
+    setLines(prevLines => {
+      return prevLines.map(line => {
+        // Only update if the line is using default colors
+        if (line.brushColor === "#000000" || line.brushColor === "#ffffff") {
+          return {
+            ...line,
+            brushColor: isDarkMode ? "#ffffff" : "#000000"
+          };
+        }
+        return line;
+      });
+    });
+  }, [isDarkMode, brushColor]);
   const [gesturePanActive, setGesturePanActive] = useState(false);
   const panLastYRef = useRef<number | null>(null);
   const drawingPointerIdRef = useRef<number | null>(null);
@@ -286,11 +313,11 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
     if (!tempCtx) return null;
     
     // 1. Fill background color
-    tempCtx.fillStyle = '#0a0a0a'; // Match screen background
+    tempCtx.fillStyle = isDarkMode ? '#0a0a0a' : '#ffffff'; // Match screen background
     tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
     
     // 2. Draw Background Pattern (Lines/Grid)
-    tempCtx.strokeStyle = '#333333';
+    tempCtx.strokeStyle = isDarkMode ? '#333333' : '#dddddd';
     tempCtx.lineWidth = 1;
     
     const gridSize = backgroundSpacing;
@@ -527,11 +554,11 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
     if (!ctx) return;
     
     // Clear background
-    ctx.fillStyle = '#0a0a0a';
+    ctx.fillStyle = isDarkMode ? '#0a0a0a' : '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     // Set grid/line color
-    ctx.strokeStyle = '#333333';
+    ctx.strokeStyle = isDarkMode ? '#333333' : '#dddddd';
     ctx.lineWidth = 1;
     
     const gridSize = backgroundSpacing;
@@ -564,9 +591,9 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
       default:
         break;
     }
-  }, [backgroundType, backgroundSpacing]);
+  }, [backgroundType, backgroundSpacing, isDarkMode]);
 
-  // Update background when backgroundType or dimensions change
+  // Update background when backgroundType, dimensions, or theme changes
   useEffect(() => {
     const backgroundCanvas = document.getElementById('background-canvas') as HTMLCanvasElement;
     if (backgroundCanvas) {
@@ -574,7 +601,7 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
       backgroundCanvas.height = dimensions.height;
       drawBackground(backgroundCanvas);
     }
-  }, [backgroundType, dimensions, drawBackground]);
+  }, [backgroundType, dimensions, drawBackground, isDarkMode]);
 
   const handleRecognize = async () => {
     if (!canvasRef.current) return;
@@ -621,31 +648,17 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
     }
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
 
-    // Create a FileReader to read the image
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const imageData = event.target?.result as string;
-      if (!imageData) return;
-
-      // Call the recognize function with the uploaded image
-      await onRecognize(imageData);
-    };
-    reader.readAsDataURL(file);
-  };
 
   return (
-    <div className="flex flex-col h-full w-full bg-[#0a0a0a] border-r border-zinc-900 relative" id="canvas-container">
+    <div className={`flex flex-col h-full w-full ${isDarkMode ? 'bg-[#0a0a0a] border-r border-zinc-900' : 'bg-[#ffffff] border-r border-zinc-200'} relative`} id="canvas-container">
        <div className="absolute top-4 left-4 z-20 flex flex-col items-start gap-2 max-w-[95vw] pointer-events-none toolbar-container">
            {/* Main Toolbar */}
-           <div className="flex items-center gap-1.5 bg-zinc-900/90 p-1.5 rounded-lg border border-zinc-800 backdrop-blur-md shadow-xl overflow-x-auto no-scrollbar pointer-events-auto max-w-full">
+           <div className={`flex items-center gap-1.5 ${isDarkMode ? 'bg-zinc-900/90 border-zinc-800' : 'bg-zinc-100/90 border-zinc-300'} p-1.5 rounded-lg border backdrop-blur-md shadow-xl overflow-x-auto no-scrollbar pointer-events-auto max-w-full`}>
               
               <button 
-                onClick={() => { setIsPanMode(false); setIsEraser(false); if(brushColor==='#0a0a0a') setBrushColor('#ffffff'); }}
-                className={`p-2 rounded-md transition-colors ${!isPanMode && !isEraser ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'}`}
+                onClick={() => { setIsPanMode(false); setIsEraser(false); if(brushColor=== (isDarkMode ? '#0a0a0a' : '#ffffff')) setBrushColor(isDarkMode ? '#ffffff' : '#000000'); }}
+                className={`p-2 rounded-md transition-colors ${!isPanMode && !isEraser ? (isDarkMode ? 'bg-zinc-700 text-white' : 'bg-zinc-300 text-zinc-900') : (isDarkMode ? 'text-zinc-400 hover:text-white' : 'text-zinc-600 hover:text-zinc-900')}`}
                 title="Pencil"
               >
                 <Pencil size={18} />
@@ -653,7 +666,7 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
 
               <button 
                 onClick={() => { setIsPanMode(true); setIsEraser(false); }}
-                className={`p-2 rounded-md transition-colors ${isPanMode ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'}`}
+                className={`p-2 rounded-md transition-colors ${isPanMode ? (isDarkMode ? 'bg-zinc-700 text-white' : 'bg-zinc-300 text-zinc-900') : (isDarkMode ? 'text-zinc-400 hover:text-white' : 'text-zinc-600 hover:text-zinc-900')}`}
                 title="Drag"
               >
                 <Hand size={18} />
@@ -662,7 +675,7 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
               {/* Stroke Width Toggle */}
               <button
                  onClick={() => setActiveMenu(activeMenu === 'stroke' ? 'none' : 'stroke')}
-                 className={`p-2 rounded-md transition-all flex items-center gap-1 ${activeMenu === 'stroke' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-white'}`}
+                 className={`p-2 rounded-md transition-all flex items-center gap-1 ${activeMenu === 'stroke' ? (isDarkMode ? 'bg-zinc-800 text-white' : 'bg-zinc-200 text-zinc-900') : (isDarkMode ? 'text-zinc-400 hover:text-white' : 'text-zinc-600 hover:text-zinc-900')}`}
                  title="Stroke Width"
                >
                   <Circle size={14} fill="currentColor" className="opacity-70" />
@@ -670,32 +683,32 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
                </button>
 
               <button 
-                onClick={() => { setIsPanMode(false); setIsEraser(true); setBrushColor("#0a0a0a"); }}
-                className={`p-2 rounded-md transition-colors ${!isPanMode && isEraser ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'}`}
+                onClick={() => { setIsPanMode(false); setIsEraser(true); setBrushColor(isDarkMode ? "#0a0a0a" : "#ffffff"); }}
+                className={`p-2 rounded-md transition-colors ${!isPanMode && isEraser ? (isDarkMode ? 'bg-zinc-700 text-white' : 'bg-zinc-300 text-zinc-900') : (isDarkMode ? 'text-zinc-400 hover:text-white' : 'text-zinc-600 hover:text-zinc-900')}`}
                 title="Eraser"
               >
                 <Eraser size={18} />
               </button>
               
-              <div className="w-px h-5 bg-zinc-800 mx-1"></div>
+              <div className={`w-px h-5 ${isDarkMode ? 'bg-zinc-800' : 'bg-zinc-300'} mx-1`}></div>
 
               {/* Color Palette Toggle */}
               <button 
                 onClick={() => setActiveMenu(activeMenu === 'color' ? 'none' : 'color')}
-                className={`p-2 rounded-md transition-all flex items-center gap-1 ${activeMenu === 'color' ? 'bg-zinc-800' : ''}`}
+                className={`p-2 rounded-md transition-all flex items-center gap-1 ${activeMenu === 'color' ? (isDarkMode ? 'bg-zinc-800' : 'bg-zinc-200') : ''}`}
                 title="Color Palette"
               >
-                <Palette size={18} className={activeMenu === 'color' ? 'text-white' : 'text-zinc-400'} />
+                <Palette size={18} className={activeMenu === 'color' ? (isDarkMode ? 'text-white' : 'text-zinc-900') : (isDarkMode ? 'text-zinc-400' : 'text-zinc-600')} />
                 <div 
-                  className="w-3 h-3 rounded-full border border-zinc-600 shadow-sm"
-                  style={{ backgroundColor: brushColor === '#0a0a0a' ? '#ffffff' : brushColor }}
+                  className={`w-3 h-3 rounded-full border shadow-sm ${isDarkMode ? 'border-zinc-600' : 'border-zinc-400'}`}
+                  style={{ backgroundColor: brushColor === (isDarkMode ? '#0a0a0a' : '#ffffff') ? (isDarkMode ? '#ffffff' : '#000000') : brushColor }}
                 ></div>
               </button>
               
                {/* Background Settings Toggle */}
                <button 
                   onClick={() => setActiveMenu(activeMenu === 'background' ? 'none' : 'background')}
-                  className={`p-2 rounded-md transition-all flex items-center gap-1 ${activeMenu === 'background' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-white'}`}
+                  className={`p-2 rounded-md transition-all flex items-center gap-1 ${activeMenu === 'background' ? (isDarkMode ? 'bg-zinc-800 text-white' : 'bg-zinc-200 text-zinc-900') : (isDarkMode ? 'text-zinc-400 hover:text-white' : 'text-zinc-600 hover:text-zinc-900')}`}
                   title="Background Settings"
                 >
                   {backgroundType === 'blank' && <Square size={18} />}
@@ -703,39 +716,24 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
                   {backgroundType === 'grid' && <Grid3X3 size={18} />}
                 </button>
               
-              <div className="w-px h-5 bg-zinc-800 mx-1"></div>
+              <div className={`w-px h-5 ${isDarkMode ? 'bg-zinc-800' : 'bg-zinc-300'} mx-1`}></div>
 
               <button 
                 onClick={handleAddPage}
-                className="p-2 text-zinc-400 hover:text-white transition-colors rounded-md hover:bg-zinc-800"
+                className={`p-2 transition-colors rounded-md ${isDarkMode ? 'text-zinc-400 hover:text-white hover:bg-zinc-800' : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200'}`}
                 title="Add New Page"
               >
                 <Plus size={18} />
               </button>
               <button 
                 onClick={handleClear}
-                className="p-2 text-zinc-400 hover:text-red-400 transition-colors rounded-md hover:bg-zinc-800"
+                className={`p-2 transition-colors rounded-md ${isDarkMode ? 'text-zinc-400 hover:text-red-400 hover:bg-zinc-800' : 'text-zinc-600 hover:text-red-500 hover:bg-zinc-200'}`}
                 title="Clear"
               >
                 <RefreshCw size={18} />
               </button>
               
-              <button 
-                onClick={() => document.getElementById('image-upload')?.click()}
-                className="p-2 text-zinc-400 hover:text-blue-400 transition-colors rounded-md hover:bg-zinc-800"
-                title="Upload Image"
-              >
-                <FileImage size={18} />
-              </button>
-              
-              <div className="w-px h-5 bg-zinc-800 mx-1"></div>
-              <input 
-                type="file" 
-                id="image-upload" 
-                accept="image/*" 
-                className="hidden" 
-                onChange={handleImageUpload}
-              />
+
               
               <button
                 onClick={handleRecognize}
@@ -760,8 +758,8 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
            {/* Side Panels (Popups next to toolbar) */}
            <div className="flex flex-col gap-2 pointer-events-auto">
                {activeMenu === 'stroke' && (
-                  <div className="bg-zinc-900/95 border border-zinc-800 rounded-lg p-3 flex flex-col gap-3 shadow-xl backdrop-blur-md min-w-[150px] animate-in fade-in slide-in-from-top-2 duration-200">
-                      <div className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-1">Stroke Width: {currentRadius}px</div>
+                  <div className={`${isDarkMode ? 'bg-zinc-900/95 border-zinc-800' : 'bg-zinc-100/95 border-zinc-300'} border rounded-lg p-3 flex flex-col gap-3 shadow-xl backdrop-blur-md min-w-[150px] animate-in fade-in slide-in-from-top-2 duration-200`}>
+                      <div className={`text-xs font-medium ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'} uppercase tracking-wider mb-1`}>Stroke Width: {currentRadius}px</div>
                       <input 
                           type="range" 
                           min="1" 
@@ -773,9 +771,9 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
                               if (isEraser) setEraserRadius(val);
                               else setPenRadius(val);
                           }}
-                          className="w-full accent-white h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer"
+                          className={`w-full ${isDarkMode ? 'accent-white bg-zinc-700' : 'accent-zinc-900 bg-zinc-300'} h-1.5 rounded-lg appearance-none cursor-pointer`}
                       />
-                      <div className="flex justify-between text-[10px] text-zinc-500 font-mono">
+                      <div className={`flex justify-between text-[10px] ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'} font-mono`}>
                           <span>1px</span>
                           <span>20px</span>
                       </div>
@@ -783,7 +781,7 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
                )}
                
                {activeMenu === 'color' && (
-                   <div className="bg-zinc-900/95 border border-zinc-800 rounded-lg p-2 flex flex-wrap gap-2 shadow-xl backdrop-blur-md max-w-[160px] animate-in fade-in slide-in-from-top-2 duration-200">
+                   <div className={`${isDarkMode ? 'bg-zinc-900/95 border-zinc-800' : 'bg-zinc-100/95 border-zinc-300'} border rounded-lg p-2 flex flex-wrap gap-2 shadow-xl backdrop-blur-md max-w-[160px] animate-in fade-in slide-in-from-top-2 duration-200`}>
                        {colorPalette.map(color => (
                            <button
                                key={color}
@@ -793,14 +791,14 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
                                    // If selecting white/color, ensure we are not in eraser mode
                                    setActiveMenu('none');
                                }}
-                               className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${brushColor === color && !isEraser ? 'border-white scale-110' : 'border-transparent'}`}
+                               className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${brushColor === color && !isEraser ? (isDarkMode ? 'border-white' : 'border-zinc-900') + ' scale-110' : 'border-transparent'}`}
                                style={{ backgroundColor: color }}
                                title={color}
                            />
                        ))}
                        
                        {/* Custom Color Picker */}
-                       <label className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 flex items-center justify-center bg-gradient-to-br from-red-500 via-green-500 to-blue-500 cursor-pointer relative overflow-hidden ${!colorPalette.includes(brushColor) && !isEraser ? 'border-white scale-110' : 'border-transparent'}`} title="Custom Color">
+                       <label className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 flex items-center justify-center bg-gradient-to-br from-red-500 via-green-500 to-blue-500 cursor-pointer relative overflow-hidden ${!colorPalette.includes(brushColor) && !isEraser ? (isDarkMode ? 'border-white' : 'border-zinc-900') + ' scale-110' : 'border-transparent'}`} title="Custom Color">
                            <input 
                                type="color" 
                                value={brushColor}
@@ -815,26 +813,26 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
                )}
                
                {activeMenu === 'background' && (
-                   <div className="bg-zinc-900/95 border border-zinc-800 rounded-lg p-3 flex flex-col gap-3 shadow-xl backdrop-blur-md min-w-[180px] animate-in fade-in slide-in-from-top-2 duration-200">
-                        <div className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-1">Type</div>
-                        <div className="flex gap-1 bg-zinc-800/50 p-1 rounded-lg">
+                   <div className={`${isDarkMode ? 'bg-zinc-900/95 border-zinc-800' : 'bg-zinc-100/95 border-zinc-300'} border rounded-lg p-3 flex flex-col gap-3 shadow-xl backdrop-blur-md min-w-[180px] animate-in fade-in slide-in-from-top-2 duration-200`}>
+                        <div className={`text-xs font-medium ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'} uppercase tracking-wider mb-1`}>Type</div>
+                        <div className={`flex gap-1 ${isDarkMode ? 'bg-zinc-800/50' : 'bg-zinc-200/50'} p-1 rounded-lg`}>
                             <button 
                                 onClick={() => handleBackgroundChange('blank', backgroundSpacing)}
-                                className={`flex-1 py-1.5 rounded-md flex justify-center transition-colors ${backgroundType === 'blank' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                className={`flex-1 py-1.5 rounded-md flex justify-center transition-colors ${backgroundType === 'blank' ? (isDarkMode ? 'bg-zinc-700 text-white' : 'bg-zinc-300 text-zinc-900') + ' shadow-sm' : (isDarkMode ? 'text-zinc-500 hover:text-zinc-300' : 'text-zinc-600 hover:text-zinc-900')}`}
                                 title="Blank"
                             >
                                 <Square size={16} />
                             </button>
                             <button 
                                 onClick={() => handleBackgroundChange('lines', backgroundSpacing)}
-                                className={`flex-1 py-1.5 rounded-md flex justify-center transition-colors ${backgroundType === 'lines' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                className={`flex-1 py-1.5 rounded-md flex justify-center transition-colors ${backgroundType === 'lines' ? (isDarkMode ? 'bg-zinc-700 text-white' : 'bg-zinc-300 text-zinc-900') + ' shadow-sm' : (isDarkMode ? 'text-zinc-500 hover:text-zinc-300' : 'text-zinc-600 hover:text-zinc-900')}`}
                                 title="Lined"
                             >
                                 <AlignJustify size={16} />
                             </button>
                             <button 
                                 onClick={() => handleBackgroundChange('grid', backgroundSpacing)}
-                                className={`flex-1 py-1.5 rounded-md flex justify-center transition-colors ${backgroundType === 'grid' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                className={`flex-1 py-1.5 rounded-md flex justify-center transition-colors ${backgroundType === 'grid' ? (isDarkMode ? 'bg-zinc-700 text-white' : 'bg-zinc-300 text-zinc-900') + ' shadow-sm' : (isDarkMode ? 'text-zinc-500 hover:text-zinc-300' : 'text-zinc-600 hover:text-zinc-900')}`}
                                 title="Grid"
                             >
                                 <Grid3X3 size={16} />
@@ -843,8 +841,8 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
                         
                         {(backgroundType === 'lines' || backgroundType === 'grid') && (
                             <>
-                                <div className="h-px bg-zinc-800 my-1"></div>
-                                <div className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-1">Spacing: {backgroundSpacing}px</div>
+                                <div className={`h-px ${isDarkMode ? 'bg-zinc-800' : 'bg-zinc-300'} my-1`}></div>
+                                <div className={`text-xs font-medium ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'} uppercase tracking-wider mb-1`}>Spacing: {backgroundSpacing}px</div>
                                 <input 
                                     type="range" 
                                     min="20" 
@@ -852,9 +850,9 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
                                     step="5"
                                     value={backgroundSpacing}
                                     onChange={(e) => handleBackgroundChange(backgroundType, parseInt(e.target.value))}
-                                    className="w-full accent-white h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer"
+                                    className={`w-full ${isDarkMode ? 'accent-white bg-zinc-700' : 'accent-zinc-900 bg-zinc-300'} h-1.5 rounded-lg appearance-none cursor-pointer`}
                                 />
-                                <div className="flex justify-between text-[10px] text-zinc-500 font-mono">
+                                <div className={`flex justify-between text-[10px] ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'} font-mono`}>
                                     <span>20px</span>
                                     <span>100px</span>
                                 </div>
@@ -875,7 +873,7 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
               {Array.from({ length: Math.ceil(dimensions.height / PAGE_HEIGHT) }).map((_, i) => (
                   <div 
                     key={i} 
-                    className="absolute w-full pointer-events-none border-b border-dashed border-zinc-800"
+                    className={`absolute w-full pointer-events-none border-b border-dashed ${isDarkMode ? 'border-zinc-800' : 'border-zinc-300'}`}
                     style={{ top: (i + 1) * PAGE_HEIGHT, height: 0, left: 0 }}
                   />
               ))}
@@ -884,7 +882,7 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
               {Array.from({ length: Math.ceil(dimensions.height / PAGE_HEIGHT) }).map((_, i) => (
                   <div 
                     key={`num-${i}`} 
-                    className="absolute pointer-events-none text-xs text-zinc-600 font-mono font-medium bg-zinc-900/50 px-2 py-1 rounded"
+                    className={`absolute pointer-events-none text-xs ${isDarkMode ? 'text-zinc-600 bg-zinc-900/50' : 'text-zinc-500 bg-zinc-100/50'} font-mono font-medium px-2 py-1 rounded`}
                     style={{ top: (i + 1) * PAGE_HEIGHT - 32, right: 16 }}
                   >
                      {i + 1}
@@ -895,7 +893,7 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasRef, HandwritingCan
               <canvas
                 id="background-canvas"
                 className="absolute top-0 left-0"
-                style={{ backgroundColor: '#0a0a0a' }}
+                style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#ffffff' }}
               />
               
               <div className={(isPanMode || gesturePanActive) ? 'pointer-events-none' : ''}>
