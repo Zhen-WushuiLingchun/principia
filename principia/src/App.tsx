@@ -1198,6 +1198,28 @@ ${explanations.join("\n\\hrule\n")}
                                         setIsRecognizing(true);
                                         setOcrProgress(0);
                                         
+                                        // Start fake progress
+                                        function startFakeProgress() {
+                                            let progress = 0;
+                                            const interval = setInterval(() => {
+                                                progress += 1;
+                                                if (progress <= 95) {
+                                                    setOcrProgress(progress);
+                                                }
+                                            }, 300);
+                                            
+                                            // Save interval ID to clear later
+                                            const fakeProgressInterval = interval;
+                                            
+                                            // Clear fake progress when OCR completes
+                                            setTimeout(() => {
+                                                clearInterval(fakeProgressInterval);
+                                                setOcrProgress(100);
+                                            }, 6000); // Assume OCR takes 6 seconds
+                                        }
+                                        
+                                        startFakeProgress();
+                                        
                                         try {
                                             // Process each image
                                             for (let i = 0; i < selectedImages.length; i++) {
@@ -1388,6 +1410,28 @@ ${explanations.join("\n\\hrule\n")}
                                         
                                         setIsRecognizing(true);
                                         setOcrProgress(0);
+                                        
+                                        // Start fake progress
+                                        function startFakeProgress() {
+                                            let progress = 0;
+                                            const interval = setInterval(() => {
+                                                progress += 1;
+                                                if (progress <= 95) {
+                                                    setOcrProgress(progress);
+                                                }
+                                            }, 300);
+                                            
+                                            // Save interval ID to clear later
+                                            const fakeProgressInterval = interval;
+                                            
+                                            // Clear fake progress when OCR completes
+                                            setTimeout(() => {
+                                                clearInterval(fakeProgressInterval);
+                                                setOcrProgress(100);
+                                            }, 6000); // Assume OCR takes 6 seconds
+                                        }
+                                        
+                                        startFakeProgress();
                                         
                                         try {
                                             // Process each image
