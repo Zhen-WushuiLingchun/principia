@@ -37,14 +37,7 @@ jobs:
     - name: Build backend
       run: |
         cd principia
-        if [ "${{ matrix.os }}" == "windows-latest" ]; then
-          pyinstaller --onefile --name app app.py --distpath electron
-        elif [ "${{ matrix.os }}" == "macos-latest" ]; then
-          pyinstaller --onefile --name app app.py --distpath electron
-        else
-          # Linux
-          pyinstaller --onefile --name app app.py --distpath electron
-        fi
+        pyinstaller --onefile --name app app.py --distpath electron
       shell: bash
 
     - name: Set up Node.js
