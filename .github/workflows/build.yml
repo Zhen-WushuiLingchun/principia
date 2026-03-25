@@ -1,67 +1,52 @@
 name: Build and Test
-
 on:
   push:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
-
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-
     steps:
     - uses: actions/checkout@v4
-
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
-
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'  # 升级Node.js适配依赖要求
+        cache: 'npm'  # 缓存npm依赖，加速构建
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
         pip install pyinstaller
         cd principia
-        pip install -r requirements.txt
-
-    - name: Install Python dependencies
-      run: |
-        python -m pip install --upgrade pip
-        cd principia
-        pip install -r requirements.txt
-
+        pip install -r requirements.txt  # 仅执行一次依赖安装，删除冗余步骤
     - name: Build backend
       run: |
         cd principia
-        pyinstaller --onefile --name app app.py --distpath electron
+        # 输出到根目录electron文件夹，适配Electron-Builder读取路径
+        pyinstaller --onefile --name app app.py --distpath ../electron
       shell: bash
-
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-
     - name: Install Node.js dependencies
       run: |
         cd principia
         npm install
-
     - name: Build frontend
       run: |
         cd principia
         npm run build
-
     - name: Build Electron app
       run: |
         cd principia
         npm run electron:build
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
