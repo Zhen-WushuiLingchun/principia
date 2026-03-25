@@ -25,11 +25,29 @@
       {
         "from": "electron/app.exe",
         "to": "app.exe"
+      },
+      {
+        "from": "electron/app",
+        "to": "app"
+      },
+      {
+        "from": "electron/app.app",
+        "to": "app.app"
       }
     ],
     "win": {
       "target": ["nsis", "portable"],
       "icon": "public/favicon.png"
+    },
+    "mac": {
+      "target": ["dmg", "zip"],
+      "icon": "public/favicon.png",
+      "category": "public.app-category.utilities"
+    },
+    "linux": {
+      "target": ["AppImage", "deb", "rpm"],
+      "icon": "public/favicon.png",
+      "category": "Utility"
     }
   },
   "dependencies": {
