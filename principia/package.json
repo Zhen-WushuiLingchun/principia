@@ -19,6 +19,11 @@
     "type": "git",
     "url": "https://github.com/Qiyao-sudo/principia.git"  
   },
+  "author": {
+  "name": "Qiyao-sudo",
+  "email": "g602793150@163.com"
+  },
+  "description": "A powerful tool for OCR, formula analysis, and format conversion",
   "build": {
     "appId": "com.principia.app",
     "productName": "Principia",
@@ -54,7 +59,7 @@
       "category": "public.app-category.utilities"
     },
     "linux": {
-      "target": ["AppImage", "deb", "rpm"],
+      "target": ["AppImage"],
       "icon": "public/favicon.png",
       "category": "Utility"
     }
