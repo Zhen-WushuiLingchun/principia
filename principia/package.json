@@ -27,14 +27,21 @@
     },
     "files": [
       "electron/**/*",
-      "dist/**/*"
+      "dist/**/*",
+      "package.json"
     ],
-    "publish": null,  
     "extraResources": [
       {
-        "from": "electron",  
-        "to": "electron",
-        "filter": ["**/*"]
+        "from": "electron/app.exe",
+        "to": "app.exe"
+      },
+      {
+        "from": "electron/app",
+        "to": "app"
+      },
+      {
+        "from": "electron/app.app",
+        "to": "app.app"
       }
     ],
     "win": {
