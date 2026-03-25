@@ -1,10 +1,10 @@
-name: Build
+name: Build and Test
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
 
 jobs:
   build:
@@ -21,33 +21,49 @@ jobs:
       with:
         python-version: '3.12'
 
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+        cd principia
+        pip install -r requirements.txt
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        cd principia
+        pip install -r requirements.txt
+
+    - name: Build backend
+      run: |
+        cd principia
+        pyinstaller --onefile --name app app.py --distpath electron
+      shell: bash
+
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '22'
-        cache: 'npm'
+        node-version: '20'
 
-    # 1. 打包 Python 后端 (根目录执行，因为 principia 是子目录)
-    - name: Build Python backend
+    - name: Install Node.js dependencies
       run: |
-        pip install --upgrade pip pyinstaller
-        pyinstaller --onefile --name app principia/app.py --distpath electron
+        cd principia
+        npm install
 
-    # 2. 安装 Node 依赖 (根目录)
-    - name: Install Dependencies
-      run: npm install
+    - name: Build frontend
+      run: |
+        cd principia
+        npm run build
 
-    # 3. 构建前端 (根目录)
-    - name: Build Frontend
-      run: npm run build
+    - name: Build Electron app
+      run: |
+        cd principia
+        npm run electron:build
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    # 4. 打包 Electron (根目录)
-    - name: Build Electron
-      run: npm run electron:build
-
-    # 5. 上传产物
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
         name: principia-${{ matrix.os }}
-        path: dist-electron/
+        path: principia/dist-electron
