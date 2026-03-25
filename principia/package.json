@@ -15,24 +15,22 @@
     "electron:dev": "electron .",
     "electron:build": "npm run build && electron-builder"
   },
+  "repository": {  
+    "type": "git",
+    "url": "https://github.com/Qiyao-sudo/principia.git"  
+  },
   "build": {
     "appId": "com.principia.app",
     "productName": "Principia",
     "directories": {
       "output": "dist-electron"
     },
+    "publish": null,  
     "extraResources": [
       {
-        "from": "electron/app.exe",
-        "to": "app.exe"
-      },
-      {
-        "from": "electron/app",
-        "to": "app"
-      },
-      {
-        "from": "electron/app.app",
-        "to": "app.app"
+        "from": "electron",  
+        "to": ".",
+        "filter": ["**/*"]
       }
     ],
     "win": {
