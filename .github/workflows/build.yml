@@ -62,10 +62,17 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ matrix.os }}
+        name: principia-${{ matrix.os }}
         path: |
-          dist-electron/Principia *.exe
-          !dist-electron/win-unpacked/
-          !dist-electron/*.yml
-          !dist-electron/*.blockmap
-          !dist-electron/Principia Setup *.exe
+           principia/dist-electron/Principia *.exe
+           principia/dist-electron/Principia-*.AppImage
+           principia/dist-electron/Principia-*.dmg
+           principia/dist-electron/Principia.app
+
+           # ❌ 排除：所有不需要的内容
+           !principia/dist-electron/*-unpacked/
+           !principia/dist-electron/*.yml
+           !principia/dist-electron/*.blockmap
+           !principia/dist-electron/Principia Setup *.exe
+           !principia/dist-electron/*.deb
+           !principia/dist-electron/*.pkg
