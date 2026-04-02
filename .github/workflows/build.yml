@@ -7,8 +7,65 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
+        # 基础系统矩阵
         os: [ubuntu-latest, windows-latest, macos-latest]
+        # 按系统划分的架构+打包类型矩阵
+        include:
+          # Windows 全量配置
+          - os: windows-latest
+            arch: x64
+            package_type: full-folder
+            build_task: win-x64-full-folder
+          - os: windows-latest
+            arch: x64
+            package_type: selfContained-folder
+            build_task: win-x64-selfContained-folder
+          - os: windows-latest
+            arch: x86
+            package_type: full-folder
+            build_task: win-x86-full-folder
+          - os: windows-latest
+            arch: x86
+            package_type: selfContained-folder
+            build_task: win-x86-selfContained-folder
+          - os: windows-latest
+            arch: arm64
+            package_type: full-folder
+            build_task: win-arm64-full-folder
+          - os: windows-latest
+            arch: arm64
+            package_type: selfContained-folder
+            build_task: win-arm64-selfContained-folder
+          
+          # Linux 全量配置
+          - os: ubuntu-latest
+            arch: x64
+            package_type: selfContained-folder
+            build_task: linux-x64-selfContained-folder
+          - os: ubuntu-latest
+            arch: x64
+            package_type: selfContained-deb
+            build_task: linux-x64-selfContained-deb
+          - os: ubuntu-latest
+            arch: arm64
+            package_type: selfContained-folder
+            build_task: linux-arm64-selfContained-folder
+          - os: ubuntu-latest
+            arch: arm64
+            package_type: selfContained-deb
+            build_task: linux-arm64-selfContained-deb
+          
+          # macOS 全量配置
+          - os: macos-latest
+            arch: arm64
+            package_type: selfContained-pkg
+            build_task: macos-arm64-selfContained-pkg
+          - os: macos-latest
+            arch: x64
+            package_type: selfContained-pkg
+            build_task: macos-x64-selfContained-pkg
 
     steps:
     - uses: actions/checkout@v4
@@ -24,43 +81,93 @@ jobs:
         pip install pyinstaller
         cd principia
         pip install -r requirements.txt
-
-    - name: Install Python dependencies
-      run: |
-        python -m pip install --upgrade pip
-        cd principia
-        pip install -r requirements.txt
-
-    - name: Build backend
-      run: |
-        cd principia
-        pyinstaller --onefile --name app app.py --distpath electron
       shell: bash
 
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
+        architecture: ${{ matrix.arch }}
 
     - name: Install Node.js dependencies
       run: |
         cd principia
         npm install
+      shell: bash
 
+    # 构建Python后端（按架构区分）
+    - name: Build backend (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        cd principia
+        pyinstaller --onefile --name app --arch ${{ matrix.arch }} app.py --distpath electron
+      shell: bash
+
+    - name: Build backend (Linux/macOS)
+      if: matrix.os != 'windows-latest'
+      run: |
+        cd principia
+        pyinstaller --onefile --name app --target-arch ${{ matrix.arch }} app.py --distpath electron
+      shell: bash
+
+    # 构建前端
     - name: Build frontend
       run: |
         cd principia
         npm run build
+      shell: bash
 
-    - name: Build Electron app
+    # Windows 差异化构建逻辑
+    - name: Build Electron app (Windows - full-folder)
+      if: matrix.os == 'windows-latest' && matrix.package_type == 'full-folder'
       run: |
         cd principia
-        npm run electron:build
+        npm run electron:build -- --win --${{ matrix.arch }} --dir
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Upload artifacts
+    - name: Build Electron app (Windows - selfContained-folder)
+      if: matrix.os == 'windows-latest' && matrix.package_type == 'selfContained-folder'
+      run: |
+        cd principia
+        npm run electron:build -- --win --${{ matrix.arch }} --dir --self-contained
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    # Linux 差异化构建逻辑
+    - name: Build Electron app (Linux - selfContained-folder)
+      if: matrix.os == 'ubuntu-latest' && matrix.package_type == 'selfContained-folder'
+      run: |
+        cd principia
+        npm run electron:build -- --linux --${{ matrix.arch }} --dir --self-contained
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build Electron app (Linux - selfContained-deb)
+      if: matrix.os == 'ubuntu-latest' && matrix.package_type == 'selfContained-deb'
+      run: |
+        cd principia
+        npm run electron:build -- --linux deb --${{ matrix.arch }} --self-contained
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    # macOS 差异化构建逻辑
+    - name: Build Electron app (macOS - selfContained-pkg)
+      if: matrix.os == 'macos-latest' && matrix.package_type == 'selfContained-pkg'
+      run: |
+        cd principia
+        npm run electron:build -- --mac pkg --${{ matrix.arch }} --self-contained
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    # 上传产物（按任务名区分）
+    - name: Upload 仅打包后的程序本体
       uses: actions/upload-artifact@v4
       with:
-        name: principia-${{ matrix.os }}
-        path: principia/dist-electron
+        name: ${{ matrix.build_task }} # 使用你定义的任务名（如 win-x64-full-folder）
+        path: |
+          # 包含：只匹配根目录下的 exe（不包含 Setup 开头的安装包）
+          dist-electron/Principia *.exe
+          !dist-electron/win-unpacked/
+          !dist-electron/*.yml
+          !dist-electron/*.blockmap
