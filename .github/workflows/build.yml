@@ -2,6 +2,20 @@ name: Build and Test
 
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: '发布标签'
+        required: true
+        type: string
+      primary_version:
+        description: '主发布版本'
+        required: true
+        type: string
+      is_test_mode:
+        description: '是否处于测试发布模式'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build:
@@ -25,11 +39,11 @@ jobs:
         cd principia
         pip install -r requirements.txt
 
-    - name: Install Python dependencies
+    - name: Set app version
       run: |
-        python -m pip install --upgrade pip
         cd principia
-        pip install -r requirements.txt
+        sed -i 's/"version": "[^"]*"/"version": "${{ inputs.primary_version }}"/' package.json
+      shell: bash
 
     - name: Build backend
       run: |
@@ -62,7 +76,7 @@ jobs:
     - name: Upload unpacked folder artifact
       uses: actions/upload-artifact@v4
       with:
-        name: principia-${{ matrix.os }}-unpacked
+        name: principia-${{ inputs.primary_version }}-${{ matrix.os }}-unpacked
         path: |
           principia/dist-electron/*-unpacked/
         # 保留文件夹结构，避免解压后丢失层级
@@ -72,7 +86,7 @@ jobs:
     - name: Upload executable file artifact
       uses: actions/upload-artifact@v4
       with:
-        name: principia-${{ matrix.os }}-executable
+        name: principia-${{ inputs.primary_version }}-${{ matrix.os }}-executable
         path: |
           # Windows 可执行文件
           principia/dist-electron/Principia *.exe
