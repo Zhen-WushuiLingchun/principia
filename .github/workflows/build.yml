@@ -42,8 +42,7 @@ jobs:
     - name: Set app version
       run: |
         cd principia
-        sed -i 's/"version": "[^"]*"/"version": "${{ inputs.primary_version }}"/' package.json
-      shell: bash
+        node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '${{ inputs.primary_version }}'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
 
     - name: Build backend
       run: |
@@ -60,6 +59,11 @@ jobs:
       run: |
         cd principia
         npm install
+
+    - name: Set app version
+      run: |
+        cd principia
+        node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '${{ inputs.primary_version }}'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
 
     - name: Build frontend
       run: |
