@@ -59,20 +59,33 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Upload artifacts
+    - name: Upload unpacked folder artifact
       uses: actions/upload-artifact@v4
       with:
-        name: principia-${{ matrix.os }}
+        name: principia-${{ matrix.os }}-unpacked
         path: |
-           principia/dist-electron/Principia *.exe
-           principia/dist-electron/Principia-*.AppImage
-           principia/dist-electron/Principia-*.dmg
-           principia/dist-electron/Principia.app
+          principia/dist-electron/*-unpacked/
+        # 保留文件夹结构，避免解压后丢失层级
+        if-no-files-found: warn
 
-           # ❌ 排除：所有不需要的内容
-           !principia/dist-electron/*-unpacked/
-           !principia/dist-electron/*.yml
-           !principia/dist-electron/*.blockmap
-           !principia/dist-electron/Principia Setup *.exe
-           !principia/dist-electron/*.deb
-           !principia/dist-electron/*.pkg
+    # 第二个上传步骤：上传对应系统的可执行文件（排除unpacked和其他冗余文件）
+    - name: Upload executable file artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: principia-${{ matrix.os }}-executable
+        path: |
+          # Windows 可执行文件
+          principia/dist-electron/Principia *.exe
+          # Linux AppImage
+          principia/dist-electron/Principia-*.AppImage
+          # macOS 镜像/应用包
+          principia/dist-electron/Principia-*.dmg
+          principia/dist-electron/Principia.app
+          # 排除不需要的文件
+          !principia/dist-electron/*-unpacked/
+          !principia/dist-electron/*.yml
+          !principia/dist-electron/*.blockmap
+          !principia/dist-electron/Principia Setup *.exe
+          !principia/dist-electron/*.deb
+          !principia/dist-electron/*.pkg
+        if-no-files-found: warn
