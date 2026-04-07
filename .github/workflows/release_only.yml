@@ -25,28 +25,23 @@ jobs:
         with:
           ruby-version: '3.2'
 
-      - name: 生成并转义 Changelog (关键修复)
-        id: generate_changelog
+      - name: 生成 Changelog
+        id: changelog
         run: |
-            # 安装工具
-            gem install github_changelog_generator --user-install
-        
-            # 生成日志
-            github_changelog_generator -u ${{ github.repository_owner }} -p ${{ github.event.repository.name }} --token ${{ secrets.GITHUB_TOKEN }}
-        
-            # 🔥 核心修复：将文件内容读取并替换换行符为 HTML 换行 <br> 或 Markdown 换行
-            # 读取文件并替换所有换行符为 <br>，确保在 GitHub 界面正确换行
-            CHANGELOG_CONTENT=$(cat CHANGELOG.md | sed ':a;N;$!ba;s/\n/<br>/g')
-        
-            # 输出到步骤输出
-            echo "changelog=$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
+          gem install github_changelog_generator
+          github_changelog_generator -u ${{ github.repository_owner }} -p ${{ github.event.repository.name }} --token ${{ secrets.GITHUB_TOKEN }}
+          CHANGELOG=$(cat CHANGELOG.md)
+          CHANGELOG="${CHANGELOG//'%'/'%25'}"
+          CHANGELOG="${CHANGELOG//$'\n'/'%0A'}"
+          CHANGELOG="${CHANGELOG//$'\r'/'%0D'}"
+          echo "content=$CHANGELOG" >> $GITHUB_OUTPUT
 
       - name: 发布 Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.release_tag }}
           name: Release ${{ inputs.primary_version }}
-          body: ${{ steps.generate_changelog.outputs.changelog }}
+          body: ${{ steps.changelog.outputs.content }}
           files: artifacts/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
