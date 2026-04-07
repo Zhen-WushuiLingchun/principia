@@ -137,13 +137,22 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # ==========================
+      # 压缩未打包文件夹
+      # ==========================
+      - name: 压缩未打包文件夹
+        run: |
+          cd principia/dist-electron
+          tar -czf ../principia-${{ inputs.release_version }}-${{ matrix.platform }}-${{ matrix.arch }}-unpacked.tar.gz *-unpacked
+        shell: bash
+
+      # ==========================
       # 上传1：解压文件夹
       # ==========================
       - name: 上传 解压文件夹
         uses: actions/upload-artifact@v4
         with:
           name: principia-${{ inputs.release_version }}-${{ matrix.platform }}-${{ matrix.arch }}-unpacked
-          path: principia/dist-electron/*-unpacked/**
+          path: principia/principia-${{ inputs.release_version }}-${{ matrix.platform }}-${{ matrix.arch }}-unpacked.tar.gz
           if-no-files-found: warn
 
       # ==========================
