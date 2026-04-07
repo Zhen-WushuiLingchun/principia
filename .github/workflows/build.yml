@@ -30,10 +30,10 @@ jobs:
             arch: arm64
 
           # macOS
-          - os: macos-13
+          - os: macos-15
             platform: macos
             arch: x64
-          - os: macos-13
+          - os: macos-15
             platform: macos
             arch: arm64
 
