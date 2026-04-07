@@ -1,5 +1,4 @@
-name: 全平台全架构自动构建
-
+name: Build
 on:
   workflow_dispatch:
     inputs:
@@ -25,18 +24,16 @@ jobs:
           - os: ubuntu-latest
             platform: linux
             arch: x64
-          - os: ubuntu-24.04-arm64
+          - os: ubuntu-latest
             platform: linux
             arch: arm64
-
           # macOS
           - os: macos-13
             platform: macos
             arch: x64
-          - os: macos-14
+          - os: macos-13
             platform: macos
             arch: arm64
-
           # Windows
           - os: windows-latest
             platform: windows
@@ -51,18 +48,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # ARM64 需要 QEMU 模拟器
-      - name: 安装 QEMU 模拟器
+      # 修复核心：先初始化Docker环境（基础镜像无docker，需先安装）
+      - name: 初始化Docker环境（用于QEMU模拟ARM64）
+        if: matrix.arch == 'arm64'
+        uses: docker/setup-buildx-action@v3
+
+      # 再安装QEMU模拟器（依赖Docker，现在可正常执行）
+      - name: 安装QEMU多架构模拟器
         if: matrix.arch == 'arm64'
         uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/arm64,windows/arm64,darwin/arm64
 
       # ==========================
-      # Python 环境
+      # Python 环境配置
       # ==========================
       - name: 设置 Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          architecture: ${{ matrix.arch == 'x86' && 'x86' || 'x64' }}
 
       - name: 安装 Python 依赖
         run: |
@@ -70,18 +75,23 @@ jobs:
           pip install pyinstaller
           cd principia
           pip install -r requirements.txt
+        shell: bash
 
       # ==========================
-      # 打包 Python 后端
+      # 按架构打包Python后端
       # ==========================
       - name: 构建 Python 后端
         run: |
           cd principia
-          pyinstaller --onefile --name app app.py --distpath electron
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            qemu-aarch64 python -m PyInstaller --onefile --name app app.py --distpath electron
+          else
+            pyinstaller --onefile --name app app.py --distpath electron
+          fi
         shell: bash
 
       # ==========================
-      # Node.js + Electron
+      # Node.js + Electron 环境
       # ==========================
       - name: 设置 Node.js 20
         uses: actions/setup-node@v4
@@ -90,22 +100,22 @@ jobs:
 
       - name: 安装 Node 依赖
         run: cd principia && npm install
+        shell: bash
 
-      # 统一版本号
-      - name: 设置版本号
+      - name: 统一应用版本号
         run: |
           cd principia
           node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json'));p.version='${{ inputs.primary_version }}';fs.writeFileSync('package.json',JSON.stringify(p,null,2));"
         shell: bash
 
-      # 构建前端
-      - name: 构建前端
+      # ==========================
+      # 构建前端 + Electron 应用
+      # ==========================
+      - name: 构建前端静态资源
         run: cd principia && npm run build
+        shell: bash
 
-      # ==========================
-      # 按架构构建 Electron
-      # ==========================
-      - name: 构建 Electron 应用
+      - name: 按架构构建 Electron 应用
         run: |
           cd principia
           if [ "${{ matrix.platform }}" = "windows" ]; then
@@ -124,9 +134,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # ==========================
-      # 上传 1：未打包解压文件夹（用于调试）
+      # 上传1：未打包解压文件夹（调试用）
       # ==========================
-      - name: 上传【解压文件夹】
+      - name: 上传解压文件夹
         uses: actions/upload-artifact@v4
         with:
           name: principia-${{ inputs.primary_version }}-${{ matrix.platform }}-${{ matrix.arch }}-unpacked
@@ -134,9 +144,9 @@ jobs:
           if-no-files-found: warn
 
       # ==========================
-      # 上传 2：可执行安装包（用于发布）
+      # 上传2：可执行安装包（发布用）
       # ==========================
-      - name: 上传【安装包/可执行文件】
+      - name: 上传可执行文件/安装包
         uses: actions/upload-artifact@v4
         with:
           name: principia-${{ inputs.primary_version }}-${{ matrix.platform }}-${{ matrix.arch }}-executable
@@ -148,4 +158,6 @@ jobs:
             !principia/dist-electron/*-unpacked/
             !principia/dist-electron/*.yml
             !principia/dist-electron/*.blockmap
+            !principia/dist-electron/*.deb
+            !principia/dist-electron/*.pkg
           if-no-files-found: warn
