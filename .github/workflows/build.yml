@@ -156,3 +156,48 @@ jobs:
             !principia/dist-electron/*.yml
             !principia/dist-electron/*.blockmap
           if-no-files-found: warn
+
+  release:
+    needs: build  # 依赖build任务完成
+    if: ${{ inputs.is_test_mode == false }}  # 仅非测试模式执行
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 拉取所有提交记录
+
+      # 下载所有构建产物
+      - name: 下载所有构建产物
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      # 生成Changelog（基于最近一次tag到当前的提交）
+      - name: 生成 Changelog
+        id: generate_changelog
+        run: |
+          # 安装
+          gem install github_changelog_generator
+    
+          # 生成（自动读取仓库信息）
+          github_changelog_generator -u ${{ github.repository_owner }} -p ${{ github.event.repository.name }} --token ${{ secrets.GITHUB_TOKEN }}
+    
+          # 处理格式
+          CHANGELOG=$(cat CHANGELOG.md)
+          CHANGELOG="${CHANGELOG//'%'/'%25'}"
+          CHANGELOG="${CHANGELOG//$'\n'/'%0A'}"
+          CHANGELOG="${CHANGELOG//$'\r'/'%0D'}"
+          echo "changelog=$CHANGELOG" >> $GITHUB_OUTPUT
+      # 发布Release并上传产物
+      - name: 发布 GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          name: Release v${{ inputs.primary_version }}
+          body: ${{ steps.generate_changelog.outputs.changelog }}
+          files: |
+            artifacts/**/*
+          draft: false  # 非草稿
+          prerelease: false  # 非预发布
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
