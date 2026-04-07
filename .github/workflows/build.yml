@@ -173,16 +173,12 @@ jobs:
           path: artifacts
 
       # 生成Changelog（基于最近一次tag到当前的提交）
-      - name: 生成 Changelog
+      - name: 生成 Changelog（github-changelog-generator 修复权限）
         id: generate_changelog
         run: |
-          # 安装
-          gem install github_changelog_generator
-    
-          # 生成（自动读取仓库信息）
+          gem install github_changelog_generator --user-install
+          export PATH=$HOME/.gem/ruby/*/bin:$PATH
           github_changelog_generator -u ${{ github.repository_owner }} -p ${{ github.event.repository.name }} --token ${{ secrets.GITHUB_TOKEN }}
-    
-          # 处理格式
           CHANGELOG=$(cat CHANGELOG.md)
           CHANGELOG="${CHANGELOG//'%'/'%25'}"
           CHANGELOG="${CHANGELOG//$'\n'/'%0A'}"
