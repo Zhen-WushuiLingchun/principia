@@ -1,0 +1,44 @@
+name: 仅发布测试（不构建）
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        required: true
+      primary_version:
+        required: true
+
+jobs:
+  release-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: 生成 Changelog（修复版）
+        id: changelog
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+        run: |
+          gem install github_changelog_generator
+          github_changelog_generator -u ${{ github.repository_owner }} -p ${{ github.event.repository.name }} --token ${{ secrets.GITHUB_TOKEN }}
+          CHANGELOG=$(cat CHANGELOG.md)
+          CHANGELOG="${CHANGELOG//'%'/'%25'}"
+          CHANGELOG="${CHANGELOG//$'\n'/'%0A'}"
+          CHANGELOG="${CHANGELOG//$'\r'/'%0D'}"
+          echo "content=$CHANGELOG" >> $GITHUB_OUTPUT
+
+      - name: 发布 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          name: Release ${{ inputs.primary_version }}
+          body: ${{ steps.changelog.outputs.content }}
+          files: artifacts/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
