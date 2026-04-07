@@ -137,7 +137,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: principia-${{ inputs.primary_version }}-${{ matrix.platform }}-${{ matrix.arch }}-unpacked
-          path: principia/dist-electron/*-unpacked/
+          path: principia/dist-electron/*-unpacked/**
           if-no-files-found: warn
 
       # ==========================
