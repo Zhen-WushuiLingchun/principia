@@ -1,109 +1,151 @@
-name: Build and Test
+name: 全平台全架构自动构建
 
 on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: '发布标签'
         required: true
         type: string
       primary_version:
-        description: '主发布版本'
         required: true
         type: string
       is_test_mode:
-        description: '是否处于测试发布模式'
         required: false
-        type: boolean
         default: false
+        type: boolean
 
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          # Linux
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+          - os: ubuntu-24.04-arm64
+            platform: linux
+            arch: arm64
+
+          # macOS
+          - os: macos-13
+            platform: macos
+            arch: x64
+          - os: macos-14
+            platform: macos
+            arch: arm64
+
+          # Windows
+          - os: windows-latest
+            platform: windows
+            arch: x64
+          - os: windows-latest
+            platform: windows
+            arch: x86
+          - os: windows-latest
+            platform: windows
+            arch: arm64
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.12'
+      # ARM64 需要 QEMU 模拟器
+      - name: 安装 QEMU 模拟器
+        if: matrix.arch == 'arm64'
+        uses: docker/setup-qemu-action@v3
 
-    - name: Install Python dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pyinstaller
-        cd principia
-        pip install -r requirements.txt
+      # ==========================
+      # Python 环境
+      # ==========================
+      - name: 设置 Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-    - name: Set app version
-      run: |
-        cd principia
-        node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '${{ inputs.primary_version }}'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
+      - name: 安装 Python 依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          cd principia
+          pip install -r requirements.txt
 
-    - name: Build backend
-      run: |
-        cd principia
-        pyinstaller --onefile --name app app.py --distpath electron
-      shell: bash
+      # ==========================
+      # 打包 Python 后端
+      # ==========================
+      - name: 构建 Python 后端
+        run: |
+          cd principia
+          pyinstaller --onefile --name app app.py --distpath electron
+        shell: bash
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
+      # ==========================
+      # Node.js + Electron
+      # ==========================
+      - name: 设置 Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-    - name: Install Node.js dependencies
-      run: |
-        cd principia
-        npm install
+      - name: 安装 Node 依赖
+        run: cd principia && npm install
 
-    - name: Set app version
-      run: |
-        cd principia
-        node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '${{ inputs.primary_version }}'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
+      # 统一版本号
+      - name: 设置版本号
+        run: |
+          cd principia
+          node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json'));p.version='${{ inputs.primary_version }}';fs.writeFileSync('package.json',JSON.stringify(p,null,2));"
+        shell: bash
 
-    - name: Build frontend
-      run: |
-        cd principia
-        npm run build
+      # 构建前端
+      - name: 构建前端
+        run: cd principia && npm run build
 
-    - name: Build Electron app
-      run: |
-        cd principia
-        npm run electron:build
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # ==========================
+      # 按架构构建 Electron
+      # ==========================
+      - name: 构建 Electron 应用
+        run: |
+          cd principia
+          if [ "${{ matrix.platform }}" = "windows" ]; then
+            if [ "${{ matrix.arch }}" = "x86" ]; then
+              npm run electron:build -- --ia32
+            elif [ "${{ matrix.arch }}" = "arm64" ]; then
+              npm run electron:build -- --arm64
+            else
+              npm run electron:build -- --x64
+            fi
+          else
+            npm run electron:build -- --${{ matrix.arch }}
+          fi
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Upload unpacked folder artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: principia-${{ inputs.primary_version }}-${{ matrix.os }}-unpacked
-        path: |
-          principia/dist-electron/*-unpacked/
-        # 保留文件夹结构，避免解压后丢失层级
-        if-no-files-found: warn
+      # ==========================
+      # 上传 1：未打包解压文件夹（用于调试）
+      # ==========================
+      - name: 上传【解压文件夹】
+        uses: actions/upload-artifact@v4
+        with:
+          name: principia-${{ inputs.primary_version }}-${{ matrix.platform }}-${{ matrix.arch }}-unpacked
+          path: principia/dist-electron/*-unpacked/
+          if-no-files-found: warn
 
-    # 第二个上传步骤：上传对应系统的可执行文件（排除unpacked和其他冗余文件）
-    - name: Upload executable file artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: principia-${{ inputs.primary_version }}-${{ matrix.os }}-executable
-        path: |
-          # Windows 可执行文件
-          principia/dist-electron/Principia *.exe
-          # Linux AppImage
-          principia/dist-electron/Principia-*.AppImage
-          # macOS 镜像/应用包
-          principia/dist-electron/Principia-*.dmg
-          principia/dist-electron/Principia.app
-          # 排除不需要的文件
-          !principia/dist-electron/*-unpacked/
-          !principia/dist-electron/*.yml
-          !principia/dist-electron/*.blockmap
-          !principia/dist-electron/Principia Setup *.exe
-          !principia/dist-electron/*.deb
-          !principia/dist-electron/*.pkg
-        if-no-files-found: warn
+      # ==========================
+      # 上传 2：可执行安装包（用于发布）
+      # ==========================
+      - name: 上传【安装包/可执行文件】
+        uses: actions/upload-artifact@v4
+        with:
+          name: principia-${{ inputs.primary_version }}-${{ matrix.platform }}-${{ matrix.arch }}-executable
+          path: |
+            principia/dist-electron/*.exe
+            principia/dist-electron/*.AppImage
+            principia/dist-electron/*.dmg
+            principia/dist-electron/*.app
+            !principia/dist-electron/*-unpacked/
+            !principia/dist-electron/*.yml
+            !principia/dist-electron/*.blockmap
+          if-no-files-found: warn
