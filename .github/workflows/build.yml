@@ -135,7 +135,7 @@ jobs:
           fi
         shell: bash
       # ==========================
-      # 【最终修复】压缩可执行文件/安装包（彻底解决tar通配符报错）
+      # 【最终彻底修复】压缩可执行文件/安装包（解决空格+通配符+跨平台问题）
       # ==========================
       - name: 压缩可执行文件/安装包
         run: |
@@ -147,22 +147,30 @@ jobs:
             exit 0
           fi
           cd "$TARGET_DIR"
-          # 精准匹配需要的文件，输出为绝对路径/相对路径列表
-          FOUND_FILES=$(find . -maxdepth 1 -type f \
+          # 关键：用-print0输出null分隔的文件列表，find判断是否有文件
+          if find . -maxdepth 1 -type f \
             \( -name "*.exe" -o -name "*.AppImage" -o -name "*.dmg" -o -name "*.app" \) \
             -not -name "Principia Setup *.exe" -not -name "*.deb" -not -name "*.pkg" \
-            -not -name "*.yml" -not -name "*.blockmap" | tr '\n' ' ')
-          # 判断是否找到文件
-          if [ -n "$FOUND_FILES" ]; then
-            # 直接将找到的文件传给tar，无通配符，跨平台100%兼容
-            tar -czf "../principia-${{ inputs.release_version }}-${{ matrix.platform }}-${{ matrix.arch }}-executable.tar.gz" $FOUND_FILES
-            echo "✅ 找到可执行文件并压缩完成：$FOUND_FILES"
+            -not -name "*.yml" -not -name "*.blockmap" -print0 | grep -qz .; then
+            # 核心：xargs -0 传递null分隔文件，tar -T - 从标准输入读文件，完美支持空格
+            find . -maxdepth 1 -type f \
+              \( -name "*.exe" -o -name "*.AppImage" -o -name "*.dmg" -o -name "*.app" \) \
+              -not -name "Principia Setup *.exe" -not -name "*.deb" -not -name "*.pkg" \
+              -not -name "*.yml" -not -name "*.blockmap" -print0 | xargs -0 tar -czf "../principia-${{ inputs.release_version }}-${{ matrix.platform }}-${{ matrix.arch }}-executable.tar.gz" -T -
+            echo "✅ 可执行文件压缩完成（支持带空格文件名）"
+            # 可选：打印打包的文件列表，便于排查
+            echo "🔍 打包的文件："
+            find . -maxdepth 1 -type f \
+              \( -name "*.exe" -o -name "*.AppImage" -o -name "*.dmg" -o -name "*.app" \) \
+              -not -name "Principia Setup *.exe" -not -name "*.deb" -not -name "*.pkg" \
+              -not -name "*.yml" -not -name "*.blockmap"
           else
             echo "::warning::❌ 在 $TARGET_DIR 未找到可执行文件/安装包，跳过压缩"
             echo "📂 目录下现有文件："
             ls -la
           fi
         shell: bash
+
 
       # ==========================
       # 上传1：unpacked压缩包（原逻辑不变）
