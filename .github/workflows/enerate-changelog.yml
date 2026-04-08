@@ -92,7 +92,7 @@ jobs:
       - name: 调用DeepSeek生成Changelog并写入App.md
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          DEEPSEEK_API_ENDPOINT: ${{ secrets.DEEPSEEK_API_ENDPOINT || 'https://api.deepseek.com/v1/chat/completions' }}
+          DEEPSEEK_API_ENDPOINT: ${{ secrets.DEEPSEEK_API_ENDPOINT || 'https://api.deepseek.com/' }}
           MAIN_VERSION: ${{ github.event.inputs.main_version }}
           SUB_VERSION: ${{ github.event.inputs.sub_version }}
           CURRENT_TAG: ${{ steps.process_tag.outputs.current_tag }}
