@@ -5,19 +5,20 @@ on:
       release_tag:
         required: true
         type: string
-        description: 发布标签-版本号
+        description: 发布标签-版本号(v1.X.X)
       release_version:
         required: true
         type: string
-        description: 发布版本号
+        description: 发布版本号(1.X.X)
       primary_version:
         required: true
         type: string
-        description: 大版本号
+        description: 主版本号(1.X)
       is_test_mode:
         required: false
         default: false
         type: boolean
+        description: 是否为测试模式
 jobs:
   build:
     runs-on: ${{ matrix.os }}

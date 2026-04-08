@@ -5,15 +5,15 @@ on:
   workflow_dispatch:
     inputs:
       main_version:
-        description: '主版本号(如 1、2)'
+        description: '主版本号(1.X)'
         required: true
         type: string
       sub_version:
-        description: '次/完整版本号(如 1.3.2、v1.3.2)'
+        description: '次/完整版本号(1.X.X)'
         required: true
         type: string
       current_tag:
-        description: '当前Git Tag名称(如 v1.3.2，不存在则自动创建)'
+        description: '当前Git Tag名称(v1.X.X，不存在则自动创建)'
         required: true
         type: string
 
