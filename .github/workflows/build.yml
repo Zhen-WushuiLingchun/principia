@@ -174,7 +174,10 @@ jobs:
             !principia/dist-electron/*-unpacked/
             !principia/dist-electron/*.yml
             !principia/dist-electron/*.blockmap
-          if-no-files-found: warn
+            !principia/dist-electron/Principia Setup *.exe
+            !principia/dist-electron/*.deb
+            !principia/dist-electron/*.pkg          
+            if-no-files-found: warn
 
   release:
     needs: build  # 依赖build任务完成
