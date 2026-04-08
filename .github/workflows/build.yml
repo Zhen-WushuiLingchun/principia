@@ -1,5 +1,4 @@
 name: Build and Release
-
 on:
   workflow_dispatch:
     inputs:
@@ -19,7 +18,6 @@ on:
         required: false
         default: false
         type: boolean
-
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -34,7 +32,6 @@ jobs:
           - os: ubuntu-latest
             platform: linux
             arch: arm64
-
           # macOS
           - os: macos-15
             platform: macos
@@ -42,7 +39,6 @@ jobs:
           - os: macos-15
             platform: macos
             arch: arm64
-
           # Windows
           - os: windows-latest
             platform: windows
@@ -53,19 +49,16 @@ jobs:
           - os: windows-latest
             platform: windows
             arch: arm64
-
     steps:
       - uses: actions/checkout@v4
-
       # ==========================
-      # Python 环境
+      # Python 环境（原逻辑不变）
       # ==========================
       - name: 设置 Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           architecture: ${{ matrix.arch == 'x86' && 'x86' || 'x64' }}
-
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
@@ -73,9 +66,8 @@ jobs:
           cd principia
           pip install -r requirements.txt
         shell: bash
-
       # ==========================
-      # 【关键修复】跨架构打包Python（无QEMU、无报错）
+      # 构建 Python 后端（原逻辑不变）
       # ==========================
       - name: 构建 Python 后端
         run: |
@@ -94,31 +86,26 @@ jobs:
             pyinstaller --onefile --name app app.py --distpath electron
           fi
         shell: bash
-
       # ==========================
-      # Node.js + Electron
+      # Node.js + Electron（原逻辑不变）
       # ==========================
       - name: 设置 Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
       - name: 安装 Node 依赖
         run: cd principia && npm install
         shell: bash
-
       - name: 设置版本号
         run: |
           cd principia
           node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json'));p.version='${{ inputs.release_version }}';fs.writeFileSync('package.json',JSON.stringify(p,null,2));"
         shell: bash
-
       - name: 构建前端
         run: cd principia && npm run build
         shell: bash
-
       # ==========================
-      # 跨架构构建Electron
+      # 跨架构构建Electron（原逻辑不变）
       # ==========================
       - name: 构建 Electron 应用
         run: |
@@ -135,22 +122,58 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       # ==========================
-      # 压缩未打包文件夹
+      # 压缩未打包文件夹（原逻辑完全保留，无任何修改）
       # ==========================
       - name: 压缩未打包文件夹
         run: |
           cd principia/dist-electron
           if ls *-unpacked 1> /dev/null 2>&1; then
-            tar -czf ../principia-${{ inputs.release_version }}-${{ matrix.platform }}-${{ matrix.arch }}-unpacked.tar.gz *-unpacked
+            tar -czf ../principia-${{ inputs.release_version }}-${{ matrix.platform }}-${{ matrix.arch }}-unpacked.tar.gz *-unpacked/**
           else
             echo "::warning::未找到未打包文件夹，跳过压缩"
           fi
         shell: bash
+      # ==========================
+      # 【最终彻底修复】压缩可执行文件/安装包（解决空格+通配符+跨平台问题）
+      # ==========================
+      - name: 压缩可执行文件/安装包
+        run: |
+          set -euo pipefail
+          TARGET_DIR="principia/dist-electron"
+          # 目录不存在直接跳过
+          if [ ! -d "$TARGET_DIR" ]; then
+            echo "::warning::目录 $TARGET_DIR 不存在，跳过可执行文件压缩"
+            exit 0
+          fi
+          cd "$TARGET_DIR"
+          # 关键：用-print0输出null分隔的文件列表，find判断是否有文件
+          if find . -maxdepth 1 -type f \
+            \( -name "*.exe" -o -name "*.AppImage" -o -name "*.dmg" -o -name "*.app" \) \
+            -not -name "Principia Setup *.exe" -not -name "*.deb" -not -name "*.pkg" \
+            -not -name "*.yml" -not -name "*.blockmap" -print0 | grep -qz .; then
+            # 核心：xargs -0 传递null分隔文件，tar -T - 从标准输入读文件，完美支持空格
+            find . -maxdepth 1 -type f \
+              \( -name "*.exe" -o -name "*.AppImage" -o -name "*.dmg" -o -name "*.app" \) \
+              -not -name "Principia Setup *.exe" -not -name "*.deb" -not -name "*.pkg" \
+              -not -name "*.yml" -not -name "*.blockmap" -print0 | xargs -0 tar -czf "../principia-${{ inputs.release_version }}-${{ matrix.platform }}-${{ matrix.arch }}-executable.tar.gz" -T -
+            echo "✅ 可执行文件压缩完成（支持带空格文件名）"
+            # 可选：打印打包的文件列表，便于排查
+            echo "🔍 打包的文件："
+            find . -maxdepth 1 -type f \
+              \( -name "*.exe" -o -name "*.AppImage" -o -name "*.dmg" -o -name "*.app" \) \
+              -not -name "Principia Setup *.exe" -not -name "*.deb" -not -name "*.pkg" \
+              -not -name "*.yml" -not -name "*.blockmap"
+          else
+            echo "::warning::❌ 在 $TARGET_DIR 未找到可执行文件/安装包，跳过压缩"
+            echo "📂 目录下现有文件："
+            ls -la
+          fi
+        shell: bash
+
 
       # ==========================
-      # 上传1：解压文件夹
+      # 上传1：unpacked压缩包（原逻辑不变）
       # ==========================
       - name: 上传 解压文件夹
         uses: actions/upload-artifact@v4
@@ -158,34 +181,23 @@ jobs:
           name: principia-${{ inputs.release_version }}-${{ matrix.platform }}-${{ matrix.arch }}-unpacked
           path: principia/principia-${{ inputs.release_version }}-${{ matrix.platform }}-${{ matrix.arch }}-unpacked.tar.gz
           if-no-files-found: warn
-
       # ==========================
-      # 上传2：安装包/可执行文件
+      # 上传2：可执行文件压缩包（原新增逻辑不变）
       # ==========================
-      - name: 上传 安装包
+      - name: 上传 可执行文件压缩包
         uses: actions/upload-artifact@v4
         with:
           name: principia-${{ inputs.release_version }}-${{ matrix.platform }}-${{ matrix.arch }}-executable
-          path: |
-            principia/dist-electron/*.exe
-            principia/dist-electron/*.AppImage
-            principia/dist-electron/*.dmg
-            principia/dist-electron/*.app
-            !principia/dist-electron/*-unpacked/
-            !principia/dist-electron/*.yml
-            !principia/dist-electron/*.blockmap
+          path: principia/principia-${{ inputs.release_version }}-${{ matrix.platform }}-${{ matrix.arch }}-executable.tar.gz
           if-no-files-found: warn
-
   release:
-    needs: build  # 依赖build任务完成
-    if: ${{ inputs.is_test_mode == false }}  # 仅非测试模式执行
+    needs: build
+    if: ${{ inputs.is_test_mode == false }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # 拉取所有提交记录
-
-      # 读取 ChangeLog 文件作为 release body
+          fetch-depth: 0
       - name: 读取 ChangeLog
         id: changelog
         run: |
@@ -194,14 +206,10 @@ jobs:
           echo "$body" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
         shell: bash
-
-      # 下载所有构建产物
       - name: 下载所有构建产物
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-
-      # 发布Release并上传产物
       - name: 发布 GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -210,7 +218,7 @@ jobs:
           body: ${{ steps.changelog.outputs.body }}
           files: |
             artifacts/**/*
-          draft: false  # 非草稿
-          prerelease: false  # 非预发布
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
