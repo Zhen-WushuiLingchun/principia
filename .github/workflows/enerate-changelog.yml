@@ -1,0 +1,113 @@
+name: Auto Generate Changelog with DeepSeek
+
+# 手动触发，支持输入三个自定义参数
+on:
+  workflow_dispatch:
+    inputs:
+      main_version:
+        description: '主版本号(1.X)'
+        required: true
+        type: string
+      sub_version:
+        description: '次/完整版本号(1.X.X)'
+        required: true
+        type: string
+      current_tag:
+        description: '当前Git Tag名称(v1.X.X，不存在则自动创建)'
+        required: true
+        type: string
+
+jobs:
+  build-changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码（拉全量历史+所有Tag）
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          ref: main  # 确保在主分支操作，可根据你的分支名修改
+
+      - name: 设置Python环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 安装依赖
+        run: pip install requests
+
+      - name: 处理Tag（自动创建不存在的Tag）
+        id: process_tag
+        run: |
+          CURRENT_TAG="${{ github.event.inputs.current_tag }}"
+          # 刷新本地Tag
+          git fetch --tags origin
+          
+          # 检查Tag是否存在
+          if git rev-parse "$CURRENT_TAG" >/dev/null 2>&1; then
+            echo "✅ Tag $CURRENT_TAG 已存在"
+            echo "tag_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "🔍 Tag $CURRENT_TAG 不存在，自动创建"
+            git tag "$CURRENT_TAG"
+            echo "tag_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+          # 获取上一个Tag（自动排序，兼容v前缀/无v前缀）
+          ALL_TAGS=$(git tag --sort=v:refname)
+          echo "所有Tag列表:"
+          echo "$ALL_TAGS"
+          
+          PREV_TAG=""
+          TAG_ARRAY=($(git tag --sort=v:refname | grep -E "^v?[0-9]+\.[0-9]+\.[0-9]+$"))
+          LEN=${#TAG_ARRAY[@]}
+          for((i=0;i<LEN;i++));do
+            if [[ "${TAG_ARRAY[$i]}" == "$CURRENT_TAG" && $i -gt 0 ]];then
+              PREV_TAG=${TAG_ARRAY[$((i-1))]}
+              break
+            fi
+          done
+
+          echo "prev_tag=$PREV_TAG" >> $GITHUB_OUTPUT
+          echo "current_tag=$CURRENT_TAG" >> $GITHUB_OUTPUT
+
+      - name: 生成Commit差异日志（终极容错版）
+        id: get_commit_log
+        run: |
+          PREV_TAG="${{ steps.process_tag.outputs.prev_tag }}"
+          CURRENT_TAG="${{ steps.process_tag.outputs.current_tag }}"
+          
+          echo "上一个Tag: $PREV_TAG"
+          echo "当前Tag: $CURRENT_TAG"
+
+          # 核心容错：双Tag存在则区间对比，否则用全量/最近20条兜底
+          if [ -n "$PREV_TAG" ] && git rev-parse "$PREV_TAG" >/dev/null 2>&1 && git rev-parse "$CURRENT_TAG" >/dev/null 2>&1; then
+            echo "✅ 生成 $PREV_TAG..$CURRENT_TAG 区间Commit日志"
+            git log $PREV_TAG..$CURRENT_TAG --pretty="- %s (%h)" > commit_diff.txt
+          else
+            echo "⚠️ 未找到有效Tag区间，使用最近20条Commit兜底"
+            git log -20 --pretty="- %s (%h)" > commit_diff.txt
+          fi
+
+      - name: 调用DeepSeek生成Changelog并写入App.md
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          DEEPSEEK_API_ENDPOINT: ${{ secrets.DEEPSEEK_API_ENDPOINT || 'https://api.deepseek.com/' }}
+          MAIN_VERSION: ${{ github.event.inputs.main_version }}
+          SUB_VERSION: ${{ github.event.inputs.sub_version }}
+          CURRENT_TAG: ${{ steps.process_tag.outputs.current_tag }}
+        run: |
+          python3 scripts/gen_changelog.py
+
+      - name: 提交&推送Changelog文件
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add doc/
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: auto generate changelog for ${{ steps.process_tag.outputs.current_tag }}" && git push)
+
+      - name: 推送新建的Tag到远端
+        if: steps.process_tag.outputs.tag_exists == 'false'
+        run: |
+          git push origin ${{ steps.process_tag.outputs.current_tag }}
+          echo "✅ 已自动推送Tag ${{ steps.process_tag.outputs.current_tag }} 到远端"

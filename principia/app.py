@@ -795,16 +795,7 @@ def ocr_progress(task_id):
     else:
         return jsonify({'error': 'Task not found', 'error_code': 404}), 404
 
-@app.route('/api/ocr/metrics', methods=['GET'])
-def ocr_metrics():
-    """Get OCR system performance metrics"""
-    return jsonify({
-        'metrics': performance_metrics,
-        'task_count': len(task_progress),
-        'active_tasks': sum(1 for task in task_progress.values() if task['status'] == 'processing'),
-        'completed_tasks': sum(1 for task in task_progress.values() if task['status'] == 'completed'),
-        'failed_tasks': sum(1 for task in task_progress.values() if task['status'] == 'error')
-    })
+
 
 # Serve React App
 @app.route('/', defaults={'path': ''})

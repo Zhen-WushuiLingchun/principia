@@ -54,7 +54,15 @@ function killProcessTree(pid) {
 
 app.whenReady().then(() => {
   // 启动后端应用
-  const backendPath = path.join(process.resourcesPath, 'app.exe');
+  let backendPath;
+  if (process.platform === 'win32') {
+    backendPath = path.join(process.resourcesPath, 'app.exe');
+  } else if (process.platform === 'darwin') {
+    backendPath = path.join(process.resourcesPath, 'app.app', 'Contents', 'MacOS', 'app');
+  } else {
+    // Linux
+    backendPath = path.join(process.resourcesPath, 'app');
+  }
   console.log('Starting backend from:', backendPath);
   child = spawn(backendPath, []);
   
