@@ -149,28 +149,25 @@ jobs:
     
           # 定义文件匹配规则（复用变量，避免重复写）
           FILE_PATTERNS="( -name *.exe -o -name *.AppImage -o -name *.dmg -o -name *.app )"
-          EXCLUDE_PATTERNS="( -name 'Principia Setup *.exe' -o -name *.deb -o -name *.pkg -o -name *.yml -o -name *.blockmap )"
+          EXCLUDE_PATTERNS="-not -name 'Principia Setup *.exe' -not -name *.deb -not -name *.pkg -not -name *.yml -not -name *.blockmap"
     
-          # 检查是否有文件
-          if find . -maxdepth 1 -type f $FILE_PATTERNS -not $EXCLUDE_PATTERNS -print0 | grep -qz .; then
-    
-          # 核心修复：用 -exec basename 去掉 ./ 前缀，保证打包文件名干净
-          find . -maxdepth 1 -type f $FILE_PATTERNS -not $EXCLUDE_PATTERNS -print0 | \
-          xargs -0 -I {} basename {} | \
-          tar -czf "../principia-${{ inputs.release_version }}-${{ matrix.platform }}-${{ matrix.arch }}-executable.tar.gz" \
-          --null -T -
-    
-          echo "✅ 可执行文件压缩完成（文件名已清理，无 ./ 前缀）"
+          # 判断是否有文件
+          if find . -maxdepth 1 -type f $FILE_PATTERNS $EXCLUDE_PATTERNS -print0 | grep -qz .; then
+            # 核心修复：用 -exec tar 直接打包，去掉路径前缀，文件名干净无 .\
+            find . -maxdepth 1 -type f $FILE_PATTERNS $EXCLUDE_PATTERNS \
+              -exec tar -C "$TARGET_DIR" -czf "../principia-${{ inputs.release_version }}-${{ matrix.platform }}-${{ matrix.arch }}-executable.tar.gz" {} +
       
-          # 打印打包文件清单
-          echo "🔍 打包的文件："
-          find . -maxdepth 1 -type f $FILE_PATTERNS -not $EXCLUDE_PATTERNS -exec basename {} \;
+            echo "✅ 可执行文件压缩完成（文件名无路径前缀）"
+      
+            # 打印打包的文件列表
+            echo "🔍 打包的文件："
+            find . -maxdepth 1 -type f $FILE_PATTERNS $EXCLUDE_PATTERNS
           else
             echo "::warning::❌ 在 $TARGET_DIR 未找到可执行文件/安装包，跳过压缩"
             echo "📂 目录下现有文件："
             ls -la
-            fi
-            shell: bash
+          fi
+        shell: bash
 
 
       # ==========================
