@@ -2,7 +2,7 @@
 const { spawn, execSync } = require('child_process');
 const { join } = require('path');
 
-const projectRoot = join(__dirname, '..', '..');
+const projectRoot = join(__dirname, '..');
 
 function detectPython() {
   const commands = ['python3', 'python', 'py'];

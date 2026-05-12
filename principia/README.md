@@ -1,73 +1,83 @@
-# React + TypeScript + Vite
+# Principia
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A cross-platform desktop application for physics formula analysis and visualization.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Handwritten formula recognition (OCR)
+- Formula analysis and explanation
+- Format conversion between different LaTeX formats
+- Interactive visualization of physics models
+- AI-powered analysis and insights
 
-## React Compiler
+## Prerequisites
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Node.js 20+
+- Python 3.11+
+- PyInstaller (for building the backend)
+- Electron (for desktop application)
 
-## Expanding the ESLint configuration
+## Setup
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd principia
+   ```
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+2. **Install dependencies**
+   ```bash
+   # Install Python dependencies
+   pip install -r requirements.txt
+   
+   # Install Node.js dependencies
+   npm install
+   ```
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+3. **Build the backend**
+   ```bash
+   # Windows
+   pyinstaller --onefile --name app app.py --distpath electron
+   
+   # macOS
+   pyinstaller --onefile --name app app.py --distpath electron
+   
+   # Linux
+   pyinstaller --onefile --name app app.py --distpath electron
+   ```
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+4. **Build the frontend**
+   ```bash
+   npm run build
+   ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+5. **Run the application**
+   ```bash
+   # Development mode
+   npm run dev
+   
+   # Production mode
+   npm run electron:build
+   ```
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Cross-Platform Support
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+The application supports the following platforms:
+- Windows
+- macOS
+- Linux
+
+## GitHub Actions
+
+The project includes a GitHub Action workflow that automatically builds and tests the application on all supported platforms. The workflow is triggered on push and pull request events to the main branch.
+
+## Project Structure
+
+- `app.py` - Backend server with OCR, analysis, and conversion functionality
+- `src/` - Frontend React application
+- `electron/` - Electron main process and resources
+- `scripts/` - Utility scripts
+
+## License
+
+MIT

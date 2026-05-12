@@ -1,61 +1,100 @@
-# The Principia 
-**这名字也是AI起的**
+# 📘 The Principia
 
-查了一下当时开发用的名字principia貌似就被人用过了，于是这里改成了The Principia（似乎还更有高级感了
-借助Gemini进行初步设计，接着完全通过TRAE开发的一个AI手写识别并转成LaTeX/markdown格式的项目，并且在网页端可以实时通过AI解释相应的公式
+**AI 图像识别 → LaTeX / Markdown 格式转换工具**
 
-具体细节见附带的别的markdown文件
+由 [Zhen-WushuiLingchun](https://github.com/Zhen-WushuiLingchun) / [principia](https://github.com/Zhen-WushuiLingchun/principia) 开发
 
-![](https://github.com/Zhen-WushuiLingchun/principia/blob/main/images/%E5%9B%BE.png)
+![](https://github.com/Qiyao-sudo/principia/blob/main/images/icon.png)
 
-这个是Nano Banana Pro生成的图标，感觉还行，就用到这里了
+---
 
-这个作为仅有三四个小时（TRAE on Campus的Vibe Coding Workshop的时间要求），并且采用100% AI开发的一个小项目，有一些bug或者不完善的地方是在所难免的，请见谅（
+## 🎯 核心定位
 
-核心痛点：解决课堂等场景下LaTeX/Markdown录入不便的问题。
+AI 文字+公式智能识别并转换为标准文档格式，**彻底解决课堂/作业/科研场景中 LaTeX/Markdown 录入繁琐问题**，适用于试卷识别、公式快速录入、笔记整理等场景。
 
-主要功能：
+---
 
-混合输入：支持“常规文本打字 + 复杂公式手写”，利用多模态AI实现超越OCR的高精度识别与逻辑纠错。
+## ✨ 核心功能
 
-智能辅助：内置上下文感知的AI解释功能，支持详细公式推导及多语言输出（课堂防断片）；并可利用多模态能力生成可视化代码。
+### 🔤 混合输入识别
 
-格式互转：调用轻量级文本模型，实现TeX与MD格式的精准语义转换。
+支持**常规文本打字 + 复杂公式手写**双模式输入，依托多模态 AI 实现超越传统 OCR 的高精度识别 + 智能逻辑纠错。
 
-图片公式识别：支持上传包含数学公式的图片，自动识别并转换为可编辑的LaTeX格式。
+### 🤖 智能辅助解析
 
-函数图像绘画：增强的函数图像绘制功能，支持多函数绘制、参数调整、实时数据显示和缩放平移。
+内置上下文感知 AI 解释能力，支持**详细公式推导**与多语言输出；可通过多模态能力自动生成可视化代码。
 
-历史记录：自动保存操作历史，支持查看、搜索、重新编辑和删除历史记录。
+### 🔄 格式精准互转
 
-常用数学公式表格：按类别组织的常用数学公式参考，支持一键插入公式。
+调用轻量级文本模型，实现 **TeX ↔ Markdown** 双向语义级精准转换。
 
-性能优化：实现缓存机制和渲染优化，提高模型生成速度，减少等待时间。
+### 🖼️ 图片公式识别
 
-本地化支持：完整的中英文界面切换，所有生成内容会根据选择的语言自动调整。
+上传含数学公式的图片，**自动识别 → 一键导出可编辑 LaTeX 格式**。
 
-安全与展望：当前API Key经服务端中转，建议自行改为前端直连或本地部署以保障安全。未来视空闲情况，计划封装为插件或App。
+### 📊 函数图像绘制
 
-具体情况和内容见更新日志
+增强版函数绘图工具，支持多函数叠加绘制、参数调节、实时数据显示、画布缩放平移。
 
-希望你用得开心，真拿这个东西改造出了什么别的好玩的，记得给我也看看（
+### 📜 历史记录管理
 
-***实际使用测试***
+自动保存全量操作历史，支持**查看 / 搜索 / 二次编辑 / 删除**记录。
 
-<big>**写的不太好的字的识别**
+### 🧮 常用公式速查
 
-![](https://github.com/Zhen-WushuiLingchun/principia/blob/main/images/mmexport1766463954386.jpg) 
+按分类整理常用数学公式表格，**一键插入**到编辑区，大幅提升录入效率。
 
-<big>**比较复杂的可视化（伪转动 boost**
+### ⚡ 性能优化
 
-![](https://github.com/Zhen-WushuiLingchun/principia/blob/main/images/mmexport1766463907871.jpg)
+内置智能缓存机制 + 界面渲染优化，**提升模型生成速度，减少等待耗时**。
 
-<big>**过于复杂的公式/理论的可视化可能不太好，或者根本就没什么可视化的，这就不能强求AI了**
+### 🌐 多语言本地化
 
-![](https://github.com/Zhen-WushuiLingchun/principia/blob/main/images/mmexport1766463962125.jpg)
+完整**中英文界面一键切换**，所有生成内容自动适配所选语言。
 
-<big>**使用AI的好处，连函数图像也可以识别，现场就可以生成能用的tex代码（只不过KaTeX不支持实时渲染，得下载之后用XeLaTeX等编译**
+---
 
+## 🔒 安全说明 & 未来规划
+
+- 安全提示：当前 API Key 经服务端中转，**建议自行改为前端直连 / 本地部署**以保障数据安全
+- 未来规划：视开发进度，计划封装为独立插件 / 桌面 App
+
+---
+
+## 📌 版本更新
+
+详细功能迭代与修复记录 → [更新日志](CHANGELOG.md)
+
+---
+
+## 📸 实际使用测试
+
+### ✅ LaTeX / Md 格式编译
+
+![](https://github.com/Qiyao-sudo/principia/blob/main/images/01.png)
+
+### ✅ 手写文字识别
+
+![](https://github.com/Qiyao-sudo/principia/blob/main/images/02.png)
+
+### ✅ 图片公式识别
+
+![](https://github.com/Qiyao-sudo/principia/blob/main/images/03.png)
+
+### ✅ 暗色模式界面
+
+![](https://github.com/Qiyao-sudo/principia/blob/main/images/04.png)
+
+### ✅ 预置数学公式库
+
+![](https://github.com/Qiyao-sudo/principia/blob/main/images/05.png)
+
+### ✅ 复杂可视化效果（伪转动 boost）
+
+![](https://github.com/Qiyao-sudo/principia/blob/main/images/04.jpg)
+
+### ✅ 函数图像识别 → 生成可用 TeX 代码
+
+（下载后使用 XeLaTeX 等工具编译即可运行）
 ![](https://github.com/Zhen-WushuiLingchun/principia/blob/main/images/IMG_20251223_122625.jpg)
 ![](https://github.com/Zhen-WushuiLingchun/principia/blob/main/images/IMG_20251223_122710.jpg)
-
